@@ -120,9 +120,13 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 	// Login
 
 	t.Run("Login handler", func(t *testing.T) {
-		repo := &mockRepo{findByEmail: func(_ context.Context, _ string) (domain.User, error) { return sampleUser, nil }}
+		repo := &mockRepo{findByEmail: func(_ context.Context, _ string) (domain.User, error) {
+			return sampleUser, nil
+		}}
 		hasher := &mockHasher{compareFunc: func(_ string, _ string) error { return nil }}
-		token := &mockToken{issueFunc: func(_ context.Context, _ uuid.UUID, _ string) (string, error) { return "tok-login", nil }}
+		token := &mockToken{
+			issueFunc: func(_ context.Context, _ uuid.UUID, _ string) (string, error) { return "tok-login", nil },
+		}
 		svc := authapp.New(repo, hasher, token, 3600)
 		h := NewAuthHandler(svc, slog.New(slog.NewTextHandler(nil, &slog.HandlerOptions{})), validation.New())
 
@@ -146,7 +150,9 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 	// Profile
 
 	t.Run("Profile handler", func(t *testing.T) {
-		repo := &mockRepo{findByID: func(_ context.Context, _ uuid.UUID) (domain.User, error) { return sampleUser, nil }}
+		repo := &mockRepo{
+			findByID: func(_ context.Context, _ uuid.UUID) (domain.User, error) { return sampleUser, nil },
+		}
 		hasher := &mockHasher{}
 		token := &mockToken{}
 		svc := authapp.New(repo, hasher, token, 3600)

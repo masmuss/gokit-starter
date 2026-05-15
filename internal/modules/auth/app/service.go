@@ -52,7 +52,7 @@ func New(repository Repository, hasher PasswordHasher, tokens TokenIssuer, expir
 // NewFromConfig creates a new auth service from configuration and dependencies.
 func NewFromConfig(
 	cfg *config.Config,
-	repo *authinfra.Repository,
+	repo *auth_infra.Repository,
 	hasher *auth.BcryptHasher,
 	tokens *auth.JWTManager,
 ) *Service {

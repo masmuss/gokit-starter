@@ -75,8 +75,8 @@ func RunServer(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger, router htt
 			log.InfoContext(ctx, "server started", "addr", srv.Addr)
 
 			go func() {
-				if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.ErrorContext(context.Background(), "server error", "error", err)
+				if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+					log.ErrorContext(context.Background(), "server error", "error", serveErr)
 				}
 			}()
 
