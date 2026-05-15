@@ -19,14 +19,25 @@ Gokit Starter adalah boilerplate untuk memulai project API Go dengan struktur ya
 - `internal/delivery` tetap tipis dan fokus ke HTTP;
 - konfigurasi dibaca dari environment, bukan hardcode.
 
-## Ruang lingkup awal
+## Ruang lingkup awal (Selesai)
 
-- HTTP server;
-- config loader;
-- logger terstruktur;
-- koneksi database;
-- schema dan migrasi;
-- fondasi untuk auth, cache, queue, dan observability.
+- HTTP server (Chi);
+- Dependency Injection (Uber Fx);
+- Config loader (Viper);
+- Logger terstruktur (Slog);
+- Koneksi database (PostgreSQL + Ent);
+- Caching (Redis);
+- Standar Error Handling (Shared Errors);
+- Komunikasi antar module (Internal Event Bus);
+- Automated Testing (Testify + Mockery);
+- Dokumentasi API (Swagger).
+
+## Future scope
+
+- Background job / Queue (Asynq/Machinery);
+- Observability (Prometheus, OpenTelemetry);
+- File Storage (S3/Local);
+- Multi-tenancy support yang lebih dalam.
 
 ## Bukan tujuan utama
 

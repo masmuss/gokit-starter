@@ -1,15 +1,8 @@
 {
-    "schemes": [
-        "http"
-    ],
     "swagger": "2.0",
     "info": {
-        "description": "Boilerplate API Go with Chi, Ent, and PostgreSQL.",
-        "title": "Gokit Starter API",
-        "contact": {},
-        "version": "0.1.0"
+        "contact": {}
     },
-    "basePath": "/",
     "paths": {
         "/auth/login": {
             "post": {
@@ -277,13 +270,6 @@
                     "minLength": 8
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         }
     }
 }
