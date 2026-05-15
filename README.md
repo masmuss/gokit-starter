@@ -1,0 +1,94 @@
+# Gokit Starter
+
+Gokit Starter adalah boilerplate modern untuk membangun API menggunakan Go. Proyek ini dirancang dengan prinsip **Clean Architecture** dan **Modular Monolith**, fokus pada pemisahan kepentingan, testability, dan skalabilitas.
+
+## 🚀 Tech Stack
+
+- **Framework**: [Go-Chi](https://github.com/go-chi/chi) (Router)
+- **Dependency Injection**: [Uber Fx](https://github.com/uber-go/fx)
+- **ORM**: [Ent](https://entgo.io/) (Entity Framework for Go)
+- **Validation**: [Go-Playground Validator](https://github.com/go-playground/validator)
+- **Logging**: [Slog](https://pkg.go.dev/log/slog) (Standard Library)
+- **Testing**: [Testify](https://github.com/stretchr/testify) & [Mockery](https://github.com/vektra/mockery) (Automated Mocks)
+- **Documentation**: [Swagger/OpenAPI](https://github.com/swaggo/swag)
+- **Otomasi**: [Taskfile](https://taskfile.dev/) & [Lefthook](https://github.com/evilmartians/lefthook)
+
+## 📁 Struktur Folder
+
+Struktur ini mengikuti pola yang memisahkan infrastruktur, transport layer, dan business logic:
+
+```text
+├── cmd/                # Entry points aplikasi
+├── docs/               # Dokumentasi arsitektur & Swagger UI
+├── internal/
+│   ├── app/            # Bootstrapping (Fx Modules, Router setup)
+│   ├── config/         # Konfigurasi runtime
+│   ├── delivery/       # Transport layer (HTTP Handlers, Middleware)
+│   ├── modules/        # Domain business logic (Modular Monolith)
+│   │   └── auth/       # Contoh module: Auth
+│   │       ├── app/    # Service / Use Cases
+│   │       ├── domain/ # Kontrak, Entitas, & Error Domain
+│   │       └── infra/  # Implementasi Repository (Database)
+│   └── platform/       # Cross-cutting concerns (DB, Logger, Auth Utils)
+├── test/
+│   └── mocks/          # Mock yang dihasilkan secara otomatis
+└── taskfile.yml        # Task runner (pengganti Makefile)
+```
+
+## 🛠️ Persiapan Pengembangan
+
+Pastikan Anda sudah menginstal:
+
+- Go 1.21+
+- [Task](https://taskfile.dev/installation/) (`brew install go-task`)
+- Docker (untuk database PostgreSQL)
+
+### Langkah Awal
+
+1. Clone repository:
+   ```bash
+   git clone git@github.com:masmuss/gokit-starter.git
+   ```
+2. Salin environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+3. Jalankan infrastruktur (PostgreSQL):
+   ```bash
+   docker-compose up -d
+   ```
+4. Jalankan aplikasi dengan hot-reload:
+   ```bash
+   task server
+   ```
+
+## ⌨️ Perintah Task (Taskfile)
+
+Gunakan `task` untuk menjalankan perintah umum:
+
+- `task server`: Menjalankan server dengan `air` (hot-reload).
+- `task test`: Menjalankan semua unit test.
+- `task mocks`: Menghasilkan mock otomatis menggunakan Mockery.
+- `task generate`: Menghasilkan kode Ent dari skema.
+- `task lint`: Menjalankan linter (golangci-lint).
+- `task format`: Merapikan format kode Go.
+
+## 🧪 Testing & Mocks
+
+Proyek ini menggunakan **Mockery** untuk mempermudah unit testing. Jika Anda menambahkan interface baru di layer `app`, jalankan perintah berikut untuk memperbarui mock:
+
+```bash
+task mocks
+```
+
+Mocks akan tersedia di folder `test/mocks/` dan siap digunakan dalam file `*_test.go`.
+
+## 📖 Kontribusi
+
+1. Buat branch baru dari `dev`.
+2. Pastikan `task test` dan `task lint` lulus sebelum membuat Pull Request.
+3. Ikuti standar penamaan dan arsitektur yang sudah ada di `internal/modules`.
+
+---
+
+_Gokit Starter - Built for developers who love clean and maintainable code._
