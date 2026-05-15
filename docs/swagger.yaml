@@ -17,6 +17,17 @@ definitions:
         type: string
       meta: {}
     type: object
+  internal_delivery_handler.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/internal_delivery_handler.ProfileResponse'
+    type: object
   internal_delivery_handler.LoginRequest:
     properties:
       email:
@@ -26,6 +37,49 @@ definitions:
         type: string
     required:
     - email
+    - password
+    type: object
+  internal_delivery_handler.OrganizationResponse:
+    properties:
+      code:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+    type: object
+  internal_delivery_handler.ProfileResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      organization:
+        $ref: '#/definitions/internal_delivery_handler.OrganizationResponse'
+      status:
+        type: string
+    type: object
+  internal_delivery_handler.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      organization_name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - organization_name
     - password
     type: object
 info:
@@ -52,7 +106,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.Envelope'
+            $ref: '#/definitions/internal_delivery_handler.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -62,6 +116,55 @@ paths:
           schema:
             $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
       summary: Login
+      tags:
+      - auth
+  /auth/profile:
+    get:
+      description: Returns the current authenticated user profile.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_delivery_handler.ProfileResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
+      security:
+      - BearerAuth: []
+      summary: Profile
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new account and organization.
+      parameters:
+      - description: Register payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/internal_delivery_handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_delivery_handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
+      summary: Register
       tags:
       - auth
   /health:
@@ -79,4 +182,9 @@ paths:
       - health
 schemes:
 - http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

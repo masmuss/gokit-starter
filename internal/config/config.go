@@ -17,6 +17,7 @@ type Config struct {
 	Database DatabaseConfig
 	Log      LogConfig
 	Bcrypt   BcryptConfig
+	Auth     AuthConfig
 	Session  SessionConfig
 	Cache    CacheConfig
 	Redis    RedisConfig
@@ -50,6 +51,13 @@ type LogConfig struct {
 // BcryptConfig holds bcrypt hashing configuration.
 type BcryptConfig struct {
 	Rounds int
+}
+
+// AuthConfig holds authentication configuration.
+type AuthConfig struct {
+	JWTSecret string
+	JWTIssuer string
+	JWTTTL    int
 }
 
 // SessionConfig holds session configuration.
@@ -111,6 +119,10 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("bcrypt.rounds", 12)
 
+	v.SetDefault("auth.jwt_secret", "change-me")
+	v.SetDefault("auth.jwt_issuer", "gokit-starter")
+	v.SetDefault("auth.jwt_ttl", 60)
+
 	v.SetDefault("session.driver", "database")
 	v.SetDefault("session.lifetime", 120)
 	v.SetDefault("session.encrypt", false)
@@ -147,6 +159,10 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("log.level", "LOG_LEVEL")
 
 	_ = v.BindEnv("bcrypt.rounds", "BCRYPT_ROUNDS")
+
+	_ = v.BindEnv("auth.jwt_secret", "AUTH_JWT_SECRET")
+	_ = v.BindEnv("auth.jwt_issuer", "AUTH_JWT_ISSUER")
+	_ = v.BindEnv("auth.jwt_ttl", "AUTH_JWT_TTL")
 
 	_ = v.BindEnv("session.driver", "SESSION_DRIVER")
 	_ = v.BindEnv("session.lifetime", "SESSION_LIFETIME")

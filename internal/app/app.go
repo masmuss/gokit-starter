@@ -48,7 +48,7 @@ func New(cfg *config.Config, log *slog.Logger, db *database.DB) *App {
 		Config: cfg,
 		Logger: log,
 		DB:     db,
-		Router: NewRouter(cfg.App.Name, log),
+		Router: NewRouter(cfg, db, log),
 	}
 }
 

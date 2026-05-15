@@ -3,6 +3,9 @@
 // @description Boilerplate API Go with Chi, Ent, and PostgreSQL.
 // @BasePath /
 // @schemes http
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 // Package main starts the HTTP server.
 package main
 
