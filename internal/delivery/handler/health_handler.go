@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 )
 
@@ -26,6 +27,11 @@ func NewHealthHandler(serviceName string, log *slog.Logger) *HealthHandler {
 		serviceName: serviceName,
 		log:         log,
 	}
+}
+
+// NewHealthHandlerFromConfig creates a HealthHandler from config.
+func NewHealthHandlerFromConfig(cfg *config.Config, log *slog.Logger) *HealthHandler {
+	return NewHealthHandler(cfg.App.Name, log)
 }
 
 // Handle returns the current service health status.

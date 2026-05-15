@@ -1,9 +1,7 @@
 package app
 
 import (
-	"log/slog"
 	"net/http"
-	"time"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,32 +9,17 @@ import (
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
 	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
-	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
-	"github.com/masmuss/gokit-starter/internal/platform/auth"
-	"github.com/masmuss/gokit-starter/internal/platform/database"
-	"github.com/masmuss/gokit-starter/internal/platform/validation"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // NewRouter builds the HTTP routes and middleware stack.
-func NewRouter(cfg *config.Config, db *database.DB, log *slog.Logger) *chi.Mux {
+func NewRouter(
+	cfg *config.Config,
+	authHandler *handler.AuthHandler,
+	healthHandler *handler.HealthHandler,
+	authMiddleware *deliverymiddleware.AuthMiddleware,
+) http.Handler {
 	r := chi.NewRouter()
-	healthHandler := handler.NewHealthHandler(cfg.App.Name, log)
-	passwordHasher := auth.NewBcryptHasher(cfg.Bcrypt.Rounds)
-	tokenManager := auth.NewJWTManager(
-		cfg.Auth.JWTSecret,
-		cfg.Auth.JWTIssuer,
-		time.Duration(cfg.Auth.JWTTTL)*time.Minute,
-	)
-	authService := authapp.New(
-		authinfra.NewRepository(db.Client),
-		passwordHasher,
-		tokenManager,
-		cfg.Auth.JWTTTL*60,
-	)
-	authHandler := handler.NewAuthHandler(authService, log, validation.New())
-	authMiddleware := deliverymiddleware.NewAuthMiddleware(tokenManager, log)
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

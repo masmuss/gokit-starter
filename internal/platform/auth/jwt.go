@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/masmuss/gokit-starter/internal/config"
 )
 
 // ErrInvalidToken indicates the token is invalid.
@@ -53,6 +54,15 @@ func NewJWTManager(secret, issuer string, ttl time.Duration) *JWTManager {
 		secret: []byte(secret),
 		ttl:    ttl,
 	}
+}
+
+// NewJWTManagerFromConfig creates a JWTManager from config.
+func NewJWTManagerFromConfig(cfg *config.Config) *JWTManager {
+	return NewJWTManager(
+		cfg.Auth.JWTSecret,
+		cfg.Auth.JWTIssuer,
+		time.Duration(cfg.Auth.JWTTTL)*time.Minute,
+	)
 }
 
 // Issue returns a signed JWT access token.
