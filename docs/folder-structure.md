@@ -16,8 +16,10 @@ gokit-starter/
 │   ├── platform/
 │   │   ├── database/
 │   │   │   └── database.go
-│   │   └── logger/
-│   │       └── logger.go
+│   │   ├── logger/
+│   │   │   └── logger.go
+│   │   └── validation/
+│   │       └── validation.go
 │   └── modules/
 │       └── <domain>/
 │           ├── app/

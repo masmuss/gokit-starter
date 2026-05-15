@@ -22,13 +22,6 @@ func OK(data any, message string) Envelope {
 	}
 }
 
-// Fail returns a failed response envelope.
-func Fail(message string) Envelope {
-	return Envelope{
-		Message: message,
-	}
-}
-
 // WriteJSON sends a JSON response with the provided status code.
 func WriteJSON(w http.ResponseWriter, status int, payload Envelope) error {
 	w.Header().Set("Content-Type", "application/json")
