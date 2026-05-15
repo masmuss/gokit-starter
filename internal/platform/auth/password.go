@@ -1,7 +1,10 @@
 // Package auth provides reusable authentication primitives.
 package auth
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"github.com/masmuss/gokit-starter/internal/config"
+	"golang.org/x/crypto/bcrypt"
+)
 
 const defaultBcryptCost = bcrypt.DefaultCost
 
@@ -23,6 +26,11 @@ func NewBcryptHasher(cost int) *BcryptHasher {
 	}
 
 	return &BcryptHasher{cost: cost}
+}
+
+// NewBcryptHasherFromConfig creates a Bcrypthasher from config.
+func NewBcryptHasherFromConfig(cfg *config.Config) *BcryptHasher {
+	return NewBcryptHasher(cfg.Bcrypt.Rounds)
 }
 
 // Hash returns a bcrypt hash of the password.

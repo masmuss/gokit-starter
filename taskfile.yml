@@ -16,7 +16,12 @@ tasks:
   lint:
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run ./...
+      - golangci-lint run
+
+  mocks:
+    desc: Generate mocks for all interfaces
+    cmds:
+      - mockery
 
   test:
     desc: Run all tests

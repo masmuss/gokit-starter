@@ -1,0 +1,14 @@
+with-expecter: true
+all: true
+recursive: true
+outpkg: mocks
+dir: test/mocks
+filename: "{{.InterfaceName}}_mock.go"
+mockname: "{{.InterfaceName}}Mock"
+# packages to search for interfaces
+packages:
+  github.com/masmuss/gokit-starter/internal/modules/auth/app:
+    interfaces:
+      Repository:
+      PasswordHasher:
+      TokenIssuer:
