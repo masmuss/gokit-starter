@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	// Register the PostgreSQL driver.
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/masmuss/gokit-starter/internal/config"
@@ -20,15 +20,15 @@ type DB struct {
 
 // New creates a new PostgreSQL database connection based on configuration.
 func New(cfg *config.Config) (*DB, error) {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Database.Host,
-		cfg.Database.Port,
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.Database.Username,
 		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
 		cfg.Database.Database,
 	)
 
-	stdDB, err := sql.Open("postgres", dsn)
+	stdDB, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

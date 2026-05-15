@@ -2,10 +2,12 @@
 package config
 
 import (
-	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -75,23 +77,12 @@ type RedisConfig struct {
 
 // LoadConfig loads configuration from environment variables and .env file.
 func LoadConfig() (*Config, error) {
+	loadDotEnv()
+
 	v := viper.New()
 
-	v.SetConfigName(".env")
-	v.SetConfigType("env")
-	v.AddConfigPath(".")
-
-	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
 	setDefaults(v)
-
-	if err := v.ReadInConfig(); err != nil {
-		var configFileNotFound viper.ConfigFileNotFoundError
-		if !errors.As(err, &configFileNotFound) {
-			return nil, fmt.Errorf("failed to read config: %w", err)
-		}
-	}
+	bindEnv(v)
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -109,7 +100,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.port", 8080)
 
 	v.SetDefault("database.host", "127.0.0.1")
-	v.SetDefault("database.port", 3306)
+	v.SetDefault("database.port", 5432)
 	v.SetDefault("database.database", "gokit_starter")
 	v.SetDefault("database.username", "gokit_starter")
 	v.SetDefault("database.password", "secret")
@@ -133,4 +124,68 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("redis.host", "127.0.0.1")
 	v.SetDefault("redis.port", 6379)
 	v.SetDefault("redis.password", "")
+}
+
+func bindEnv(v *viper.Viper) {
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	_ = v.BindEnv("app.name", "APP_NAME")
+	_ = v.BindEnv("app.env", "APP_ENV")
+	_ = v.BindEnv("app.debug", "APP_DEBUG")
+	_ = v.BindEnv("app.url", "APP_URL")
+	_ = v.BindEnv("app.port", "APP_PORT")
+
+	_ = v.BindEnv("database.host", "DB_HOST")
+	_ = v.BindEnv("database.port", "DB_PORT")
+	_ = v.BindEnv("database.database", "DB_DATABASE")
+	_ = v.BindEnv("database.username", "DB_USERNAME")
+	_ = v.BindEnv("database.password", "DB_PASSWORD")
+
+	_ = v.BindEnv("log.channel", "LOG_CHANNEL")
+	_ = v.BindEnv("log.stack", "LOG_STACK")
+	_ = v.BindEnv("log.level", "LOG_LEVEL")
+
+	_ = v.BindEnv("bcrypt.rounds", "BCRYPT_ROUNDS")
+
+	_ = v.BindEnv("session.driver", "SESSION_DRIVER")
+	_ = v.BindEnv("session.lifetime", "SESSION_LIFETIME")
+	_ = v.BindEnv("session.encrypt", "SESSION_ENCRYPT")
+	_ = v.BindEnv("session.path", "SESSION_PATH")
+	_ = v.BindEnv("session.domain", "SESSION_DOMAIN")
+
+	_ = v.BindEnv("cache.store", "CACHE_STORE")
+	_ = v.BindEnv("cache.prefix", "CACHE_PREFIX")
+
+	_ = v.BindEnv("redis.client", "REDIS_CLIENT")
+	_ = v.BindEnv("redis.host", "REDIS_HOST")
+	_ = v.BindEnv("redis.password", "REDIS_PASSWORD")
+	_ = v.BindEnv("redis.port", "REDIS_PORT")
+}
+
+func loadDotEnv() {
+	if envFile := findDotEnv(); envFile != "" {
+		_ = godotenv.Load(envFile)
+	}
+}
+
+func findDotEnv() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	for {
+		candidate := filepath.Join(dir, ".env")
+		if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
+			return candidate
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+
+		dir = parent
+	}
 }

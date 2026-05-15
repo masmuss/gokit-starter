@@ -11,7 +11,7 @@ tasks:
   server:
     desc: Run the API server with hot reload using air
     cmds:
-      - air
+      - air -c air.toml
 
   lint:
     desc: Run golangci-lint
