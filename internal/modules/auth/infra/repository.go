@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/platform/database"
 	"github.com/masmuss/gokit-starter/internal/platform/database/ent"
 	entuser "github.com/masmuss/gokit-starter/internal/platform/database/ent/user"
 )
@@ -28,6 +29,11 @@ type Repository struct {
 // NewRepository creates a new auth repository.
 func NewRepository(client *ent.Client) *Repository {
 	return &Repository{client: client}
+}
+
+// NewRepositoryFromDB creates a Repository from database.DB.
+func NewRepositoryFromDB(db *database.DB) *Repository {
+	return NewRepository(db.Client)
 }
 
 // CreateAccount creates an organization and its first user in one transaction.
