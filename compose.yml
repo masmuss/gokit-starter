@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gokit_starter}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gokit_starter} -d ${POSTGRES_DB:-gokit_starter}"]
       interval: 10s
