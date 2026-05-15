@@ -26,7 +26,7 @@ type App struct {
 }
 
 // Bootstrap loads configuration, logging, and database dependencies.
-func Bootstrap(logWriter io.Writer) (*config.Config, *slog.Logger, *database.DB, error) {
+func Bootstrap(ctx context.Context, logWriter io.Writer) (*config.Config, *slog.Logger, *database.DB, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("load config: %w", err)
@@ -34,7 +34,7 @@ func Bootstrap(logWriter io.Writer) (*config.Config, *slog.Logger, *database.DB,
 
 	log := logger.New(cfg.App.Debug, logWriter)
 
-	db, err := database.New(cfg)
+	db, err := database.New(ctx, cfg)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("connect database: %w", err)
 	}

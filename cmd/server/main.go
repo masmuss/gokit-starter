@@ -22,7 +22,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg, log, db, err := app.Bootstrap(os.Stdout)
+	cfg, log, db, err := app.Bootstrap(ctx, os.Stdout)
 	if err != nil {
 		return err
 	}

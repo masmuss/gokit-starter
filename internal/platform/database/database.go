@@ -2,6 +2,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -19,7 +20,7 @@ type DB struct {
 }
 
 // New creates a new PostgreSQL database connection based on configuration.
-func New(cfg *config.Config) (*DB, error) {
+func New(ctx context.Context, cfg *config.Config) (*DB, error) {
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
 		cfg.Database.Username,
 		cfg.Database.Password,
@@ -38,7 +39,13 @@ func New(cfg *config.Config) (*DB, error) {
 	}
 
 	drv := entsql.OpenDB("postgres", stdDB)
-	return &DB{Client: ent.NewClient(ent.Driver(drv))}, nil
+	client := ent.NewClient(ent.Driver(drv))
+	if migrateErr := client.Schema.Create(ctx); migrateErr != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("failed to migrate database: %w", migrateErr)
+	}
+
+	return &DB{Client: client}, nil
 }
 
 // Close closes the database connection.
