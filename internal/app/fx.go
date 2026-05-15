@@ -16,6 +16,7 @@ import (
 	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
+	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
 	"github.com/masmuss/gokit-starter/internal/platform/logger"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
@@ -29,6 +30,11 @@ var Module = fx.Module("app",
 		config.LoadConfig,
 		provideLogger,
 		database.New,
+		cache.NewRedisClient,
+		fx.Annotate(
+			cache.NewRedisCache,
+			fx.As(new(cache.Cache)),
+		),
 		validation.New,
 		auth.NewBcryptHasherFromConfig,
 		auth.NewJWTManagerFromConfig,

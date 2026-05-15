@@ -29,5 +29,27 @@ services:
       db:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    container_name: gokit-starter-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: gokit-starter-redisinsight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   db_data:
