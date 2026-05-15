@@ -41,8 +41,10 @@ internal/
 ├── app/
 ├── delivery/
 │   ├── handler/
+│   │   └── health_handler.go
 │   ├── middleware/
 │   └── response/
+│       └── response.go
 ├── modules/
 │   ├── auth/
 │   ├── user/

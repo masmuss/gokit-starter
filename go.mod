@@ -14,6 +14,7 @@ require (
 
 require (
 	entgo.io/ent v0.14.6
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/spf13/viper v1.21.0
