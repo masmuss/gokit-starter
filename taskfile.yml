@@ -1,0 +1,55 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  server:
+    desc: Run the API server with hot reload using air
+    cmds:
+      - air
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v -race ./...
+
+  build:server:
+    desc: Build the server binary
+    cmds:
+      - go build -o bin/app ./cmd/server
+
+  build:
+    desc: Build all binaries
+    deps: [build:server]
+
+  generate:
+    desc: Regenerate Ent code from schema definitions
+    cmds:
+      - go generate ./internal/platform/database/ent/...
+
+  format:
+    desc: Format all Go files using gofmt
+    cmds:
+      - gofmt -w .
+
+  tidy:
+    desc: Clean up and sync go modules
+    cmds:
+      - go mod tidy
+      - go mod verify
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -rf tmp/
