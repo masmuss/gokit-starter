@@ -8,7 +8,8 @@ import (
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 )
 
-type healthResponse struct {
+// HealthResponse represents the health endpoint payload.
+type HealthResponse struct {
 	Service string `json:"service"`
 	Status  string `json:"status"`
 }
@@ -28,12 +29,18 @@ func NewHealthHandler(serviceName string, log *slog.Logger) *HealthHandler {
 }
 
 // Handle returns the current service health status.
+// @Summary Health check
+// @Description Returns the current service status.
+// @Tags health
+// @Produce json
+// @Success 200 {object} response.Envelope
+// @Router /health [get]
 func (h *HealthHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if h.log != nil {
 		h.log.DebugContext(r.Context(), "health check", "path", r.URL.Path)
 	}
 
-	_ = response.WriteJSON(w, http.StatusOK, response.OK(healthResponse{
+	_ = response.WriteJSON(w, http.StatusOK, response.OK(HealthResponse{
 		Service: h.serviceName,
 		Status:  "ok",
 	}, "ok"))

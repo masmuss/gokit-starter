@@ -1,3 +1,8 @@
+// @title Gokit Starter API
+// @version 0.1.0
+// @description Boilerplate API Go with Chi, Ent, and PostgreSQL.
+// @BasePath /
+// @schemes http
 // Package main starts the HTTP server.
 package main
 

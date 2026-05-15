@@ -7,30 +7,30 @@ import (
 )
 
 // Envelope defines the standard API response shape.
-type Envelope[T any] struct {
+type Envelope struct {
 	Message string `json:"message,omitempty"`
-	Data    T      `json:"data,omitempty"`
+	Data    any    `json:"data,omitempty"`
 	Error   string `json:"error,omitempty"`
 	Meta    any    `json:"meta,omitempty"`
 }
 
 // OK returns a successful response envelope.
-func OK[T any](data T, message string) Envelope[T] {
-	return Envelope[T]{
+func OK(data any, message string) Envelope {
+	return Envelope{
 		Message: message,
 		Data:    data,
 	}
 }
 
 // Fail returns a failed response envelope.
-func Fail(message string) Envelope[struct{}] {
-	return Envelope[struct{}]{
+func Fail(message string) Envelope {
+	return Envelope{
 		Message: message,
 	}
 }
 
 // WriteJSON sends a JSON response with the provided status code.
-func WriteJSON[T any](w http.ResponseWriter, status int, payload Envelope[T]) error {
+func WriteJSON(w http.ResponseWriter, status int, payload Envelope) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 

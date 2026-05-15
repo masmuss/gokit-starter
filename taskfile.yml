@@ -37,6 +37,11 @@ tasks:
     cmds:
       - go generate ./internal/platform/database/ent/...
 
+  docs:generate:
+    desc: Generate Swagger/OpenAPI docs
+    cmds:
+      - swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency
+
   format:
     desc: Format all Go files using gofmt
     cmds:

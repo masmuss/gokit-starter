@@ -1,0 +1,33 @@
+basePath: /
+definitions:
+  github_com_masmuss_gokit-starter_internal_delivery_response.Envelope:
+    properties:
+      data: {}
+      error:
+        type: string
+      message:
+        type: string
+      meta: {}
+    type: object
+info:
+  contact: {}
+  description: Boilerplate API Go with Chi, Ent, and PostgreSQL.
+  title: Gokit Starter API
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      description: Returns the current service status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.Envelope'
+      summary: Health check
+      tags:
+      - health
+schemes:
+- http
+swagger: "2.0"
