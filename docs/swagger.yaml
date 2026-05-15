@@ -9,12 +9,61 @@ definitions:
         type: string
       meta: {}
     type: object
+  github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      meta: {}
+    type: object
+  internal_delivery_handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
 info:
   contact: {}
   description: Boilerplate API Go with Chi, Ent, and PostgreSQL.
   title: Gokit Starter API
   version: 0.1.0
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns an access token.
+      parameters:
+      - description: Login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/internal_delivery_handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_masmuss_gokit-starter_internal_delivery_response.ErrorEnvelope'
+      summary: Login
+      tags:
+      - auth
   /health:
     get:
       description: Returns the current service status.

@@ -43,12 +43,16 @@ internal/
 ├── app/
 ├── delivery/
 │   ├── handler/
+│   │   ├── auth_handler.go
 │   │   └── health_handler.go
 │   ├── middleware/
 │   └── response/
 │       └── response.go
 ├── modules/
 │   ├── auth/
+│   │   ├── app/
+│   │   ├── domain/
+│   │   └── infra/
 │   ├── user/
 │   ├── product/
 │   └── ...

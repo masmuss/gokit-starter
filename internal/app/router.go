@@ -8,6 +8,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/masmuss/gokit-starter/docs"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
+	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
+	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	"github.com/masmuss/gokit-starter/internal/platform/validation"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -15,6 +18,8 @@ import (
 func NewRouter(serviceName string, log *slog.Logger) *chi.Mux {
 	r := chi.NewRouter()
 	healthHandler := handler.NewHealthHandler(serviceName, log)
+	authService := authapp.New(authinfra.NewDemoAuthenticator())
+	authHandler := handler.NewAuthHandler(authService, log, validation.New())
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -22,6 +27,9 @@ func NewRouter(serviceName string, log *slog.Logger) *chi.Mux {
 	r.Use(middleware.Logger)
 
 	r.Get("/health", healthHandler.Handle)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.Login)
+	})
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/docs/index.html", http.StatusMovedPermanently)
 	})
