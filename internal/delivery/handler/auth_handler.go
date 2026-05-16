@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 
+	chi "github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 	auth_app "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
@@ -158,4 +160,11 @@ func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		Message: "profile",
 		Data:    profile,
 	})
+}
+
+// RegisterRoutes registers auth routes on the given router.
+func (h *AuthHandler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMiddleware) {
+	r.Post("/register", h.Register)
+	r.Post("/login", h.Login)
+	r.With(authMiddleware.Require).Get("/profile", h.Profile)
 }
