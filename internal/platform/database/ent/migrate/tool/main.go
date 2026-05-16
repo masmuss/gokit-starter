@@ -1,5 +1,4 @@
-//go:build ignore
-
+// Package main is a tool to generate Atlas migration files from Ent schema.
 package main
 
 import (
