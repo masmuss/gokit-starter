@@ -42,6 +42,13 @@ tasks:
     cmds:
       - go generate ./internal/database/ent/...
 
+  new:module:
+    desc: Scaffold a new business module
+    cmds:
+      - go run scripts/generator/main.go {{.name}}
+    vars:
+      name: '{{default "mymodule" .name}}'
+
   db:diff:
     desc: Generate a new migration file
     deps: [db:clean]

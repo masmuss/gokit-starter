@@ -19,11 +19,11 @@ Daftar perbaikan Developer Experience (DX) untuk menyempurnakan boilerplate.
   - [x] Tambahkan perintah di Taskfile untuk ekspor visualisasi dependency.
   - [x] Integrasikan dengan flag `APP_DEBUG` atau perintah CLI khusus.
 
-- [ ] **4. Module Generator Scaffolding**
-  - [ ] Buat template folder untuk module baru (`domain`, `app`, `infra`).
-  - [ ] Tambahkan `task new:module` yang menerima parameter `name`.
-  - [ ] Otomasi pembuatan boilerplate code untuk module baru.
+- [x] **4. Module Generator Scaffolding**
+  - [x] Buat template folder untuk module baru (`domain`, `app`, `infra`).
+  - [x] Tambahkan `task new:module` yang menerima parameter `name`.
+  - [x] Otomasi pembuatan boilerplate code untuk module baru.
 
 ---
 
-_Gunakan `task test` dan `task lint` setiap kali menyelesaikan satu poin di atas._
+_Gokit Starter DX Improvements are now fully implemented!_ ✅

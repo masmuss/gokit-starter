@@ -13,36 +13,87 @@ Gokit Starter adalah boilerplate modern untuk membangun API menggunakan Go. Proy
 - **Logging**: [Slog](https://pkg.go.dev/log/slog) (Standard Library)
 - **Testing**: [Testify](https://github.com/stretchr/testify) & [Mockery](https://github.com/vektra/mockery) (Automated Mocks)
 - **Documentation**: [Swagger/OpenAPI](https://github.com/swaggo/swag)
-- **Otomasi**: [Taskfile](https://taskfile.dev/) & [Lefthook](https://github.com/evilmartians/lefthook)
+- **Otomasi**: [Taskfile](https://taskfile.dev/), [Lefthook](https://github.com/evilmartians/lefthook), & [Atlas](https://atlasgo.io/)
 
 ## 📁 Struktur Folder
 
-Struktur ini mengikuti pola yang memisahkan infrastruktur, transport layer, dan business logic:
+Struktur ini memisahkan antara infrastruktur, transport layer, dan business logic secara tegas:
 
 ```text
 ├── cmd/                # Entry points aplikasi
+├── database/           # Aset database (SQL Migrations)
+│   └── migrations/     # File migrasi ter-versi (Atlas)
 ├── docs/               # Dokumentasi arsitektur & Swagger UI
 ├── internal/
 │   ├── app/            # Bootstrapping (Fx Modules, Router setup)
-│   ├── config/         # Konfigurasi runtime
-│   ├── delivery/       # Transport layer (HTTP Handlers, Middleware)
+│   ├── config/         # Konfigurasi runtime (Viper + Validation)
+│   ├── database/       # Implementasi ORM (Ent, Schema)
+│   ├── delivery/       # Transport layer (HTTP Handlers, Middleware, Response)
 │   ├── modules/        # Domain business logic (Modular Monolith)
 │   │   └── auth/       # Contoh module: Auth
 │   │       ├── app/    # Service / Use Cases
 │   │       ├── domain/ # Kontrak, Entitas, & Error Domain
-│   │       └── infra/  # Implementasi Repository (Database)
-│   ├── platform/       # Cross-cutting concerns (DB, Logger, Redis, Auth Utils)
+│   │       └── infra/  # Implementasi Repository
+│   ├── platform/       # Cross-cutting concerns (DB Wrapper, Logger, Redis, Auth Utils)
 │   └── shared/         # Komponen bersama (Event Bus, Standardized Errors)
+├── scripts/            # Script pembantu (Module Generator)
 ├── test/
-│   └── mocks/          # Mock yang dihasilkan secara otomatis
+│   └── mocks/          # Mock yang dihasilkan secara otomatis (Mockery)
 └── taskfile.yml        # Task runner (pengganti Makefile)
+```
+
+## 🧠 How It Works
+
+### 1. Alur Request (Layer Interaction)
+
+Aplikasi menggunakan pola pemisahan layer yang memastikan logika bisnis tidak tercampur dengan urusan teknis (DB/HTTP).
+
+```mermaid
+graph LR
+    Client -- HTTP --> Handler
+    Handler -- Input --> Service
+    Service -- Domain Entity --> Repository
+    Repository -- SQL --> PostgreSQL
+    Repository -- Map --> Service
+    Service -- Result --> Handler
+    Handler -- JSON --> Client
+```
+
+### 2. Stateless Multi-Tenancy (Hybrid Account)
+
+Sistem mendukung akun **Personal** dan **Organization** secara stateless menggunakan JWT.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Auth
+    participant Context
+    User->>Auth: Login / Register
+    Auth->>User: Token JWT (berisi UserID & OrgID)
+    Note over User,Context: Setiap request menyertakan token
+    User->>Context: Request + Token
+    Context->>Context: Middleware parse OrgID ke Context
+    Context->>Service: Logic otomatis terfilter by OrgID
+```
+
+### 3. Komunikasi Antar Module (Event Bus)
+
+Untuk menjaga modularitas, antar module berkomunikasi secara asinkron lewat Event Bus.
+
+```mermaid
+graph TD
+    AuthModule[Module Auth] -- "Publish: UserRegistered" --> Bus[Internal Event Bus]
+    Bus -- "Dispatch" --> EmailModule[Module Email]
+    Bus -- "Dispatch" --> AnalyticsModule[Module Analytics]
 ```
 
 ## 🛠️ Persiapan Pengembangan
 
 Pastikan Anda sudah menginstal:
+
 - Go 1.21+
 - [Task](https://taskfile.dev/installation/) (`brew install go-task`)
+- [Atlas CLI](https://atlasgo.io/getting-started/#installation) (`brew install ariga/tap/atlas`)
 - Docker (untuk database PostgreSQL dan Redis)
 
 ### Langkah Awal
@@ -55,7 +106,7 @@ Pastikan Anda sudah menginstal:
    ```bash
    cp .env.example .env
    ```
-3. Jalankan infrastruktur (PostgreSQL & Redis):
+3. Jalankan infrastruktur:
    ```bash
    docker compose up -d
    ```
@@ -72,45 +123,33 @@ Gunakan `task` untuk menjalankan perintah umum:
 - `task test`: Menjalankan semua unit test.
 - `task mocks`: Menghasilkan mock otomatis menggunakan Mockery.
 - `task generate`: Menghasilkan kode Ent dari skema.
+- `task new:module name=...`: Melakukan scaffolding folder dan boilerplate untuk modul baru.
+- `task viz`: Menghasilkan diagram visualisasi dependency graph Uber Fx.
 - `task db:diff name=...`: Mendeteksi perubahan skema dan men-generate file SQL migrasi baru.
-- `task db:migrate`: Menjalankan semua file migrasi SQL yang belum terpakai ke database.
+- `task db:migrate`: Menjalankan migrasi SQL ke database.
 - `task db:clean`: Reset database development (Docker) ke kondisi bersih.
-- `task docs:generate`: Menghasilkan dokumentasi Swagger/OpenAPI.
-- `task lint`: Menjalankan linter (golangci-lint).
-- `task format`: Merapikan format kode Go.
 
 ## 🗄️ Manajemen Database
 
-Proyek ini menggunakan **Versioned Migrations** melalui **Atlas**. Jangan melakukan perubahan database secara manual atau mengandalkan auto-migration di produksi.
+Proyek ini menggunakan **Versioned Migrations** melalui **Atlas**. Jangan melakukan perubahan database secara manual.
 
 ### Alur Perubahan Skema:
+
 1. Modifikasi skema di `internal/database/schema/`.
 2. Jalankan `task generate` untuk memperbarui kode Go.
 3. Jalankan `task db:diff name=deskripsi_perubahan` untuk membuat file migrasi `.sql`.
-4. Review file SQL yang dihasilkan di folder `database/migrations/`.
-5. Jalankan `task db:migrate` untuk menerapkan perubahan ke database lokal Anda.
+4. Review file SQL di folder `database/migrations/`.
+5. Jalankan `task db:migrate` untuk menerapkan perubahan.
 
-## 🧪 Testing & Mocks
+## 🏗️ Membuat Module Baru
 
-Proyek ini menggunakan **Mockery** untuk mempermudah unit testing. Jika Anda menambahkan interface baru di layer `app`, jalankan perintah berikut untuk memperbarui mock:
+Gunakan perintah generator untuk menjaga konsistensi arsitektur:
 
 ```bash
-task mocks
+task new:module name=product
 ```
 
-Mocks akan tersedia di folder `test/mocks/` dan siap digunakan dalam file `*_test.go`.
-
-## 📖 Kontribusi
-
-1. Buat branch baru dari `dev`.
-2. Pastikan `task test` dan `task lint` lulus sebelum membuat Pull Request.
-3. Ikuti standar penamaan dan arsitektur yang sudah ada di `internal/modules`.
-
----
-
-_Gokit Starter - Built for developers who love clean and maintainable code._
-` dan `task lint` lulus sebelum membuat Pull Request.
-3. Ikuti standar penamaan dan arsitektur yang sudah ada di `internal/modules`.
+Sistem akan otomatis membuatkan folder `domain`, `app`, dan `infra` di bawah `internal/modules/product/`.
 
 ---
 
