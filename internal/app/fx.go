@@ -12,15 +12,15 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
+	"github.com/masmuss/gokit-starter/internal/platform/eventbus"
 	"github.com/masmuss/gokit-starter/internal/platform/logger"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"github.com/masmuss/gokit-starter/internal/shared/event"
 	"go.uber.org/fx"
 )
 
@@ -36,10 +36,10 @@ var Module = fx.Module("app",
 			cache.NewRedisCache,
 			fx.As(new(cache.Cache)),
 		),
-		event.NewInternalBus,
+		eventbus.NewInternalBus,
 		fx.Annotate(
-			func(b *event.InternalBus) event.Bus { return b },
-			fx.As(new(event.Bus)),
+			func(b *eventbus.InternalBus) eventbus.Bus { return b },
+			fx.As(new(eventbus.Bus)),
 		),
 		validation.New,
 		auth.NewBcryptHasherFromConfig,
@@ -53,10 +53,12 @@ var Module = fx.Module("app",
 			fx.As(new(auth.TokenVerifier)),
 		),
 		authinfra.NewRepositoryFromDB,
-		authapp.NewFromConfig,
-		handler.NewHealthHandlerFromConfig,
+		provideAuthExpiresIn,
+		authapp.New,
+		provideServiceName,
+		handler.NewHealthHandler,
 		handler.NewAuthHandler,
-		deliverymiddleware.NewAuthMiddleware,
+		delivery_middleware.NewAuthMiddleware,
 		NewRouter,
 	),
 	fx.Invoke(RunServer),
@@ -64,6 +66,14 @@ var Module = fx.Module("app",
 
 func provideLogger(cfg *config.Config) *slog.Logger {
 	return logger.New(cfg.App.Debug, nil)
+}
+
+func provideAuthExpiresIn(cfg *config.Config) int {
+	return cfg.Auth.JWTTTL * 60
+}
+
+func provideServiceName(cfg *config.Config) string {
+	return cfg.App.Name
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.

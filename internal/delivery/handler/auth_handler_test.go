@@ -11,67 +11,44 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
 )
 
-// reuse simple mocks similar to service tests
-type mockRepo struct {
-	createAccount func(_ context.Context, _ domain.RegisterInput, _ string) (domain.User, error)
-	findByEmail   func(_ context.Context, _ string) (domain.User, error)
-	findByID      func(_ context.Context, _ uuid.UUID) (domain.User, error)
+type mockAuthService struct {
+	registerFn func(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
+	loginFn    func(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
+	profileFn  func(ctx context.Context, userID uuid.UUID) (domain.Profile, error)
 }
 
-func (m *mockRepo) CreateAccount(
+func (m *mockAuthService) Register(
 	ctx context.Context,
 	input domain.RegisterInput,
-	passwordHash string,
-) (domain.User, error) {
-	return m.createAccount(ctx, input, passwordHash)
+) (domain.Session, domain.Profile, error) {
+	return m.registerFn(ctx, input)
 }
 
-func (m *mockRepo) FindByEmail(
+func (m *mockAuthService) Login(
 	ctx context.Context,
-	email string,
-) (domain.User, error) {
-	return m.findByEmail(ctx, email)
+	credentials domain.Credentials,
+) (domain.Session, domain.Profile, error) {
+	return m.loginFn(ctx, credentials)
 }
 
-func (m *mockRepo) FindByID(
-	ctx context.Context,
-	id uuid.UUID,
-) (domain.User, error) {
-	return m.findByID(ctx, id)
-}
-
-type mockHasher struct {
-	hashFunc    func(_ string) (string, error)
-	compareFunc func(_ string, _ string) error
-}
-
-func (m *mockHasher) Hash(password string) (string, error) { return m.hashFunc(password) }
-func (m *mockHasher) Compare(hash, password string) error  { return m.compareFunc(hash, password) }
-
-type mockToken struct {
-	issueFunc func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error)
-}
-
-func (m *mockToken) Issue(ctx context.Context, id uuid.UUID, orgID uuid.UUID, email string) (string, error) {
-	return m.issueFunc(ctx, id, orgID, email)
+func (m *mockAuthService) Profile(ctx context.Context, userID uuid.UUID) (domain.Profile, error) {
+	return m.profileFn(ctx, userID)
 }
 
 func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 	userID := uuid.New()
 	orgID := uuid.New()
 
-	sampleUser := domain.User{
-		ID:           userID,
-		Name:         "Alice",
-		Email:        "alice@example.com",
-		PasswordHash: "hashed",
-		Status:       "active",
+	sampleProfile := domain.Profile{
+		ID:     userID,
+		Name:   "Alice",
+		Email:  "alice@example.com",
+		Status: "active",
 		Organization: domain.Organization{
 			ID:     orgID,
 			Name:   "Org",
@@ -81,25 +58,17 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		},
 	}
 
-	// Register
 	t.Run("Register handler", func(t *testing.T) {
-		repo := &mockRepo{
-			createAccount: func(_ context.Context, _ domain.RegisterInput, _ string) (domain.User, error) {
-				return sampleUser, nil
+		svc := &mockAuthService{
+			registerFn: func(_ context.Context, _ domain.RegisterInput) (domain.Session, domain.Profile, error) {
+				return domain.Session{
+					AccessToken: "tok-123",
+					TokenType:   "Bearer",
+					ExpiresIn:   3600,
+				}, sampleProfile, nil
 			},
 		}
-		hasher := &mockHasher{hashFunc: func(_ string) (string, error) { return "hashed", nil }}
-		token := &mockToken{
-			issueFunc: func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error) {
-				return "tok-123", nil
-			},
-		}
-		svc := authapp.New(repo, hasher, token, 3600)
-		h := NewAuthHandler(
-			svc,
-			slog.New(slog.DiscardHandler),
-			validation.New(),
-		)
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
 
 		reqBody := `{"name":"Alice","email":"alice@example.com","password":"secret123","organization_name":"Org"}`
 		req := httptest.NewRequest("POST", "/auth/register", strings.NewReader(reqBody))
@@ -113,34 +82,25 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 			Message string         `json:"message"`
 			Data    map[string]any `json:"data"`
 		}
-		reqBodyBytes := rr.Body.Bytes()
-		require.NoError(t, json.Unmarshal(reqBodyBytes, &env))
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 		require.Equal(t, "registered", env.Message)
-		data := env.Data
-		require.Equal(t, "tok-123", data["access_token"])
-		userMap, ok := data["user"].(map[string]any)
+		require.Equal(t, "tok-123", env.Data["access_token"])
+		userMap, ok := env.Data["user"].(map[string]any)
 		require.True(t, ok)
-		require.Equal(t, sampleUser.Email, userMap["email"])
+		require.Equal(t, "alice@example.com", userMap["email"])
 	})
 
-	// Login
-
 	t.Run("Login handler", func(t *testing.T) {
-		repo := &mockRepo{findByEmail: func(_ context.Context, _ string) (domain.User, error) {
-			return sampleUser, nil
-		}}
-		hasher := &mockHasher{compareFunc: func(_ string, _ string) error { return nil }}
-		token := &mockToken{
-			issueFunc: func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error) {
-				return "tok-login", nil
+		svc := &mockAuthService{
+			loginFn: func(_ context.Context, _ domain.Credentials) (domain.Session, domain.Profile, error) {
+				return domain.Session{
+					AccessToken: "tok-login",
+					TokenType:   "Bearer",
+					ExpiresIn:   3600,
+				}, sampleProfile, nil
 			},
 		}
-		svc := authapp.New(repo, hasher, token, 3600)
-		h := NewAuthHandler(
-			svc,
-			slog.New(slog.DiscardHandler),
-			validation.New(),
-		)
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
 
 		reqBody := `{"email":"alice@example.com","password":"secret123"}`
 		req := httptest.NewRequest("POST", "/auth/login", strings.NewReader(reqBody))
@@ -159,24 +119,16 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		require.Equal(t, "tok-login", env.Data["access_token"])
 	})
 
-	// Profile
-
 	t.Run("Profile handler", func(t *testing.T) {
-		repo := &mockRepo{
-			findByID: func(_ context.Context, _ uuid.UUID) (domain.User, error) { return sampleUser, nil },
+		svc := &mockAuthService{
+			profileFn: func(_ context.Context, _ uuid.UUID) (domain.Profile, error) {
+				return sampleProfile, nil
+			},
 		}
-		hasher := &mockHasher{}
-		token := &mockToken{}
-		svc := authapp.New(repo, hasher, token, 3600)
-		h := NewAuthHandler(
-			svc,
-			slog.New(slog.DiscardHandler),
-			validation.New(),
-		)
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
 
 		req := httptest.NewRequest("GET", "/auth/profile", nil)
-		// inject claims into context as middleware would
-		claims := auth.Claims{UserID: userID, OrganizationID: orgID, Email: sampleUser.Email}
+		claims := auth.Claims{UserID: userID, OrganizationID: orgID, Email: sampleProfile.Email}
 		req = req.WithContext(auth.WithClaims(req.Context(), claims))
 		rr := httptest.NewRecorder()
 
@@ -189,7 +141,6 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		}
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &env))
 		require.NotNil(t, env.Data, "body=%s", rr.Body.String())
-		// profile handler returns the profile object directly in data
-		require.Equal(t, sampleUser.Email, env.Data["email"], "body=%s", rr.Body.String())
+		require.Equal(t, "alice@example.com", env.Data["email"], "body=%s", rr.Body.String())
 	})
 }

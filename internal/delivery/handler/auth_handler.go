@@ -2,28 +2,37 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
+	chi "github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	auth_app "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"github.com/masmuss/gokit-starter/internal/shared/errors"
 )
+
+// AuthService defines the interface for authentication operations.
+type AuthService interface {
+	Register(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
+	Login(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
+	Profile(ctx context.Context, userID uuid.UUID) (domain.Profile, error)
+}
 
 // AuthHandler handles authentication requests.
 type AuthHandler struct {
-	service   *auth_app.Service
+	service   AuthService
 	log       *slog.Logger
 	validator *validator.Validate
 }
 
 // NewAuthHandler creates a new AuthHandler.
 func NewAuthHandler(
-	service *auth_app.Service,
+	service AuthService,
 	log *slog.Logger,
 	v *validator.Validate,
 ) *AuthHandler {
@@ -144,7 +153,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	claims, ok := auth.ClaimsFromContext(r.Context())
 	if !ok {
-		_ = response.WriteAppError(w, errors.Unauthorized("unauthorized", "unauthorized access"))
+		_ = response.WriteAppError(w, response.Unauthorized("unauthorized", "unauthorized access"))
 		return
 	}
 
@@ -158,4 +167,11 @@ func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		Message: "profile",
 		Data:    profile,
 	})
+}
+
+// RegisterRoutes registers auth routes on the given router.
+func (h *AuthHandler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMiddleware) {
+	r.Post("/register", h.Register)
+	r.Post("/login", h.Login)
+	r.With(authMiddleware.Require).Get("/profile", h.Profile)
 }

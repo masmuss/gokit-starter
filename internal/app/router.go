@@ -46,7 +46,7 @@ func NewRouter(
 
 	// CORS configuration
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Adjust for production environments
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -54,11 +54,9 @@ func NewRouter(
 		MaxAge:           300,
 	}))
 
-	r.Get("/health", healthHandler.Handle)
+	healthHandler.RegisterRoutes(r)
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.Register)
-		r.Post("/login", authHandler.Login)
-		r.With(authMiddleware.Require).Get("/profile", authHandler.Profile)
+		authHandler.RegisterRoutes(r, authMiddleware)
 	})
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/docs/index.html", http.StatusMovedPermanently)
