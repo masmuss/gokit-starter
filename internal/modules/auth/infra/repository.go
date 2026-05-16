@@ -65,18 +65,27 @@ func (r *Repository) CreateAccount(
 		orgType = organizationTypePersonal
 	}
 
-	org, err := tx.Organization.Create().
-		SetName(orgName).
-		SetCode(organizationCode(orgName)).
-		SetType(orgType).
-		SetStatus(organizationStatusActive).
-		Save(ctx)
-	if err != nil {
-		if ent.IsConstraintError(err) {
-			return domain.User{}, domain.ErrEmailAlreadyUsed
+	// Try creating organization with unique code (retry on collision)
+	var org *ent.Organization
+	for i := 0; i < 3; i++ {
+		org, err = tx.Organization.Create().
+			SetName(orgName).
+			SetCode(organizationCode(orgName)).
+			SetType(orgType).
+			SetStatus(organizationStatusActive).
+			Save(ctx)
+
+		if err == nil {
+			break
 		}
 
-		return domain.User{}, fmt.Errorf("create organization: %w", err)
+		if !ent.IsConstraintError(err) {
+			return domain.User{}, fmt.Errorf("create organization: %w", err)
+		}
+	}
+
+	if err != nil {
+		return domain.User{}, fmt.Errorf("create organization (collision): %w", err)
 	}
 
 	userRecord, err := tx.User.Create().
@@ -154,8 +163,12 @@ func organizationCode(name string) string {
 		base = "org"
 	}
 
-	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:6]
+	// Use a longer suffix (8 chars) and better truncation
+	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
 	maxBaseLength := organizationCodeMaxLength - len(suffix) - 1
+	if maxBaseLength < 1 {
+		maxBaseLength = 1
+	}
 	if len(base) > maxBaseLength {
 		base = base[:maxBaseLength]
 	}

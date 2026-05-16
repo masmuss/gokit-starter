@@ -31,7 +31,7 @@ var Module = fx.Module("app",
 		config.LoadConfig,
 		provideLogger,
 		database.New,
-		cache.NewRedisClient,
+		cache.NewRedisClientOptional,
 		fx.Annotate(
 			cache.NewRedisCache,
 			fx.As(new(cache.Cache)),
