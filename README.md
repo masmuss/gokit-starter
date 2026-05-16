@@ -72,10 +72,23 @@ Gunakan `task` untuk menjalankan perintah umum:
 - `task test`: Menjalankan semua unit test.
 - `task mocks`: Menghasilkan mock otomatis menggunakan Mockery.
 - `task generate`: Menghasilkan kode Ent dari skema.
+- `task db:diff name=...`: Mendeteksi perubahan skema dan men-generate file SQL migrasi baru.
+- `task db:migrate`: Menjalankan semua file migrasi SQL yang belum terpakai ke database.
+- `task db:clean`: Reset database development (Docker) ke kondisi bersih.
 - `task docs:generate`: Menghasilkan dokumentasi Swagger/OpenAPI.
 - `task lint`: Menjalankan linter (golangci-lint).
 - `task format`: Merapikan format kode Go.
 
+## 🗄️ Manajemen Database
+
+Proyek ini menggunakan **Versioned Migrations** melalui **Atlas**. Jangan melakukan perubahan database secara manual atau mengandalkan auto-migration di produksi.
+
+### Alur Perubahan Skema:
+1. Modifikasi skema di `internal/platform/database/ent/schema/`.
+2. Jalankan `task generate` untuk memperbarui kode Go.
+3. Jalankan `task db:diff name=deskripsi_perubahan` untuk membuat file migrasi `.sql`.
+4. Review file SQL yang dihasilkan di folder `internal/platform/database/migrations/`.
+5. Jalankan `task db:migrate` untuk menerapkan perubahan ke database lokal Anda.
 
 ## 🧪 Testing & Mocks
 
