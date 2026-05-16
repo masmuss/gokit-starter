@@ -13,14 +13,14 @@ import (
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
 	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	auth_app "github.com/masmuss/gokit-starter/internal/modules/auth/app"
-	auth_infra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
+	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
+	"github.com/masmuss/gokit-starter/internal/platform/eventbus"
 	"github.com/masmuss/gokit-starter/internal/platform/logger"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"github.com/masmuss/gokit-starter/internal/shared/event"
 	"go.uber.org/fx"
 )
 
@@ -36,10 +36,10 @@ var Module = fx.Module("app",
 			cache.NewRedisCache,
 			fx.As(new(cache.Cache)),
 		),
-		event.NewInternalBus,
+		eventbus.NewInternalBus,
 		fx.Annotate(
-			func(b *event.InternalBus) event.Bus { return b },
-			fx.As(new(event.Bus)),
+			func(b *eventbus.InternalBus) eventbus.Bus { return b },
+			fx.As(new(eventbus.Bus)),
 		),
 		validation.New,
 		auth.NewBcryptHasherFromConfig,
@@ -52,9 +52,9 @@ var Module = fx.Module("app",
 			func(m *auth.JWTManager) auth.TokenVerifier { return m },
 			fx.As(new(auth.TokenVerifier)),
 		),
-		auth_infra.NewRepositoryFromDB,
+		authinfra.NewRepositoryFromDB,
 		provideAuthExpiresIn,
-		auth_app.New,
+		authapp.New,
 		provideServiceName,
 		handler.NewHealthHandler,
 		handler.NewAuthHandler,
