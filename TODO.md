@@ -9,10 +9,10 @@ Daftar perbaikan Developer Experience (DX) untuk menyempurnakan boilerplate.
     - [x] Tambahkan `task db:migrate` untuk apply migrasi ke database.
     - [x] Update dokumentasi cara kelola database.
 
-- [ ] **2. Fail-Fast Configuration (Viper + Validator)**
-    - [ ] Tambahkan struct tags `validate:"required"` pada struct `Config`.
-    - [ ] Integrasikan `go-playground/validator` di dalam `config.LoadConfig()`.
-    - [ ] Pastikan aplikasi langsung error jika `.env` tidak lengkap saat startup.
+- [x] **2. Fail-Fast Configuration (Viper + Validator)**
+    - [x] Tambahkan struct tags `validate:"required"` pada struct `Config`.
+    - [x] Integrasikan `go-playground/validator` di dalam `config.LoadConfig()`.
+    - [x] Pastikan aplikasi langsung error jika `.env` tidak lengkap saat startup.
 
 - [ ] **3. Dependency Graph Visualization (Uber Fx)**
     - [ ] Tambahkan hook `fx.Visualize()` untuk generate DOT graph.
