@@ -33,3 +33,6 @@ tmp/
 
 # Logs
 *.log
+
+# Dependency Graph
+viz.dot
