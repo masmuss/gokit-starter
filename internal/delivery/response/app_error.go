@@ -1,5 +1,4 @@
-// Package errors provides standardized application error types and helpers.
-package errors
+package response
 
 import (
 	"errors"

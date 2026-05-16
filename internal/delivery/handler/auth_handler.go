@@ -12,7 +12,6 @@ import (
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"github.com/masmuss/gokit-starter/internal/shared/errors"
 )
 
 // AuthService defines the interface for authentication operations.
@@ -152,7 +151,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	claims, ok := auth.ClaimsFromContext(r.Context())
 	if !ok {
-		_ = response.WriteAppError(w, errors.Unauthorized("unauthorized", "unauthorized access"))
+		_ = response.WriteAppError(w, response.Unauthorized("unauthorized", "unauthorized access"))
 		return
 	}
 

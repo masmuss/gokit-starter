@@ -18,9 +18,9 @@ import (
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
+	"github.com/masmuss/gokit-starter/internal/platform/eventbus"
 	"github.com/masmuss/gokit-starter/internal/platform/logger"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"github.com/masmuss/gokit-starter/internal/shared/event"
 	"go.uber.org/fx"
 )
 
@@ -36,10 +36,10 @@ var Module = fx.Module("app",
 			cache.NewRedisCache,
 			fx.As(new(cache.Cache)),
 		),
-		event.NewInternalBus,
+		eventbus.NewInternalBus,
 		fx.Annotate(
-			func(b *event.InternalBus) event.Bus { return b },
-			fx.As(new(event.Bus)),
+			func(b *eventbus.InternalBus) eventbus.Bus { return b },
+			fx.As(new(eventbus.Bus)),
 		),
 		validation.New,
 		auth.NewBcryptHasherFromConfig,
