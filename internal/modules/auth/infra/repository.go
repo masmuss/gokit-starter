@@ -16,6 +16,7 @@ import (
 
 const (
 	organizationTypeCompany   = "company"
+	organizationTypePersonal  = "personal"
 	organizationStatusActive  = "active"
 	userStatusActive          = "active"
 	organizationCodeMaxLength = 16
@@ -56,10 +57,18 @@ func (r *Repository) CreateAccount(
 		err = tx.Commit()
 	}()
 
+	// Handle personal vs company account
+	orgName := input.OrganizationName
+	orgType := organizationTypeCompany
+	if orgName == "" {
+		orgName = input.Name
+		orgType = organizationTypePersonal
+	}
+
 	org, err := tx.Organization.Create().
-		SetName(input.OrganizationName).
-		SetCode(organizationCode(input.OrganizationName)).
-		SetType(organizationTypeCompany).
+		SetName(orgName).
+		SetCode(organizationCode(orgName)).
+		SetType(orgType).
 		SetStatus(organizationStatusActive).
 		Save(ctx)
 	if err != nil {
