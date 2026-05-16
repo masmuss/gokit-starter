@@ -107,8 +107,8 @@ func main() {
 	}
 
 	files := map[string]string{
-		filepath.Join(basePath, "domain", "model.go"):    domainTemplate,
-		filepath.Join(basePath, "app", "service.go"):     appTemplate,
+		filepath.Join(basePath, "domain", "model.go"):     domainTemplate,
+		filepath.Join(basePath, "app", "service.go"):      appTemplate,
 		filepath.Join(basePath, "infra", "repository.go"): infraTemplate,
 	}
 
