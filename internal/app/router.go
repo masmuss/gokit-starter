@@ -5,11 +5,13 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/masmuss/gokit-starter/docs"
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"github.com/unrolled/secure"
 )
 
 // NewRouter builds the HTTP routes and middleware stack.
@@ -17,14 +19,33 @@ func NewRouter(
 	cfg *config.Config,
 	authHandler *handler.AuthHandler,
 	healthHandler *handler.HealthHandler,
-	authMiddleware *deliverymiddleware.AuthMiddleware,
+	authMiddleware *delivery_middleware.AuthMiddleware,
 ) http.Handler {
 	r := chi.NewRouter()
 
+	// Security Headers
+	secureMiddleware := secure.New(secure.Options{
+		FrameDeny:          true,
+		ContentTypeNosniff: true,
+		BrowserXssFilter:   true,
+		IsDevelopment:      cfg.App.Env == "local",
+	})
+
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(secureMiddleware.Handler)
+
+	// CORS configuration
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Adjust for production environments
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	r.Get("/health", healthHandler.Handle)
 	r.Route("/auth", func(r chi.Router) {
