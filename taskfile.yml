@@ -42,6 +42,31 @@ tasks:
     cmds:
       - go generate ./internal/platform/database/ent/...
 
+  db:diff:
+    desc: Generate a new migration file
+    cmds:
+      - go run -mod=mod internal/platform/database/ent/migrate/main.go {{.name}}
+    vars:
+      name: '{{default "migration" .name}}'
+
+  db:clean:
+    desc: Reset the database to a clean state
+    cmds:
+      - docker compose down -v
+      - docker compose up -d
+      - sleep 5
+
+  db:migrate:
+    desc: Apply all pending migrations
+    cmds:
+      - atlas migrate apply --dir "file://internal/platform/database/migrations" --url "postgres://{{.DB_USER}}:{{.DB_PASS}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode=disable"
+    vars:
+      DB_USER: '{{default "gokit_starter" .DB_USER}}'
+      DB_PASS: '{{default "secret" .DB_PASS}}'
+      DB_HOST: '{{default "127.0.0.1" .DB_HOST}}'
+      DB_PORT: '{{default "5432" .DB_PORT}}'
+      DB_NAME: '{{default "gokit_starter" .DB_NAME}}'
+
   docs:generate:
     desc: Generate Swagger/OpenAPI docs
     cmds:
