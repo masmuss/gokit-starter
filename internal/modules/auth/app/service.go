@@ -7,10 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	auth_infra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
-	"github.com/masmuss/gokit-starter/internal/platform/auth"
 )
 
 // Repository persists and reads auth data.
@@ -47,16 +44,6 @@ func New(repository Repository, hasher PasswordHasher, tokens TokenIssuer, expir
 		tokens:     tokens,
 		expiresIn:  expiresIn,
 	}
-}
-
-// NewFromConfig creates a new auth service from configuration and dependencies.
-func NewFromConfig(
-	cfg *config.Config,
-	repo *auth_infra.Repository,
-	hasher *auth.BcryptHasher,
-	tokens *auth.JWTManager,
-) *Service {
-	return New(repo, hasher, tokens, cfg.Auth.JWTTTL*60)
 }
 
 // Register creates a new account and returns its session and profile.
