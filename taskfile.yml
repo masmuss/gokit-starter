@@ -89,3 +89,10 @@ tasks:
     cmds:
       - rm -rf bin/
       - rm -rf tmp/
+      - rm -f viz.dot
+
+  viz:
+    desc: Generate dependency graph visualization
+    cmds:
+      - go run cmd/server/main.go viz > viz.dot
+      - echo "Dependency graph saved to viz.dot. Paste content to edotor.net to visualize."
