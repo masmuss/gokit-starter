@@ -12,9 +12,9 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
-	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	auth_app "github.com/masmuss/gokit-starter/internal/modules/auth/app"
+	auth_infra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
 	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
@@ -52,11 +52,13 @@ var Module = fx.Module("app",
 			func(m *auth.JWTManager) auth.TokenVerifier { return m },
 			fx.As(new(auth.TokenVerifier)),
 		),
-		authinfra.NewRepositoryFromDB,
-		authapp.NewFromConfig,
-		handler.NewHealthHandlerFromConfig,
+		auth_infra.NewRepositoryFromDB,
+		provideAuthExpiresIn,
+		auth_app.New,
+		provideServiceName,
+		handler.NewHealthHandler,
 		handler.NewAuthHandler,
-		deliverymiddleware.NewAuthMiddleware,
+		delivery_middleware.NewAuthMiddleware,
 		NewRouter,
 	),
 	fx.Invoke(RunServer),
@@ -64,6 +66,14 @@ var Module = fx.Module("app",
 
 func provideLogger(cfg *config.Config) *slog.Logger {
 	return logger.New(cfg.App.Debug, nil)
+}
+
+func provideAuthExpiresIn(cfg *config.Config) int {
+	return cfg.Auth.JWTTTL * 60
+}
+
+func provideServiceName(cfg *config.Config) string {
+	return cfg.App.Name
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.
