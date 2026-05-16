@@ -1,5 +1,5 @@
-// Package event provides an internal event bus for decoupled communication.
-package event
+// Package eventbus provides an internal event bus for decoupled communication.
+package eventbus
 
 import (
 	"context"
