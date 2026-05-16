@@ -7,80 +7,81 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
 // Config holds all application configuration.
 type Config struct {
-	App      AppConfig
-	Database DatabaseConfig
-	Log      LogConfig
-	Bcrypt   BcryptConfig
-	Auth     AuthConfig
-	Session  SessionConfig
-	Cache    CacheConfig
-	Redis    RedisConfig
+	App      AppConfig      `mapstructure:"app"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Log      LogConfig      `mapstructure:"log"`
+	Bcrypt   BcryptConfig   `mapstructure:"bcrypt"`
+	Auth     AuthConfig     `mapstructure:"auth"`
+	Session  SessionConfig  `mapstructure:"session"`
+	Cache    CacheConfig    `mapstructure:"cache"`
+	Redis    RedisConfig    `mapstructure:"redis"`
 }
 
 // AppConfig holds application-level configuration.
 type AppConfig struct {
-	Name  string
-	Env   string
-	Debug bool
-	URL   string
-	Port  int
+	Name  string `mapstructure:"name"  validate:"required"`
+	Env   string `mapstructure:"env"   validate:"required,oneof=local development staging production"`
+	Debug bool   `mapstructure:"debug"`
+	URL   string `mapstructure:"url"   validate:"required,url"`
+	Port  int    `mapstructure:"port"  validate:"required,gt=0"`
 }
 
 // DatabaseConfig holds database connection configuration.
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	Database string
-	Username string
-	Password string
+	Host     string `mapstructure:"host"     validate:"required"`
+	Port     int    `mapstructure:"port"     validate:"required,gt=0"`
+	Database string `mapstructure:"database" validate:"required"`
+	Username string `mapstructure:"username" validate:"required"`
+	Password string `mapstructure:"password" validate:"required"`
 }
 
 // LogConfig holds logging configuration.
 type LogConfig struct {
-	Channel string
-	Stack   string
-	Level   string
+	Channel string `mapstructure:"channel"`
+	Stack   string `mapstructure:"stack"`
+	Level   string `mapstructure:"level"`
 }
 
 // BcryptConfig holds bcrypt hashing configuration.
 type BcryptConfig struct {
-	Rounds int
+	Rounds int `mapstructure:"rounds" validate:"required,gte=10,lte=31"`
 }
 
 // AuthConfig holds authentication configuration.
 type AuthConfig struct {
-	JWTSecret string
-	JWTIssuer string
-	JWTTTL    int
+	JWTSecret string `mapstructure:"jwt_secret" validate:"required,min=32"`
+	JWTIssuer string `mapstructure:"jwt_issuer" validate:"required"`
+	JWTTTL    int    `mapstructure:"jwt_ttl"    validate:"required,gt=0"`
 }
 
 // SessionConfig holds session configuration.
 type SessionConfig struct {
-	Driver   string
-	Lifetime int
-	Encrypt  bool
-	Path     string
-	Domain   string
+	Driver   string `mapstructure:"driver"`
+	Lifetime int    `mapstructure:"lifetime"`
+	Encrypt  bool   `mapstructure:"encrypt"`
+	Path     string `mapstructure:"path"`
+	Domain   string `mapstructure:"domain"`
 }
 
 // CacheConfig holds cache configuration.
 type CacheConfig struct {
-	Store  string
-	Prefix string
+	Store  string `mapstructure:"store"  validate:"required"`
+	Prefix string `mapstructure:"prefix"`
 }
 
 // RedisConfig holds Redis connection configuration.
 type RedisConfig struct {
-	Client   string
-	Host     string
-	Password string
-	Port     int
+	Client   string `mapstructure:"client"`
+	Host     string `mapstructure:"host"     validate:"required"`
+	Password string `mapstructure:"password"`
+	Port     int    `mapstructure:"port"     validate:"required,gt=0"`
 }
 
 // LoadConfig loads configuration from environment variables and .env file.
@@ -95,6 +96,12 @@ func LoadConfig() (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// Validate configuration
+	validate := validator.New()
+	if err := validate.Struct(&cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return &cfg, nil
@@ -119,7 +126,7 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("bcrypt.rounds", 12)
 
-	v.SetDefault("auth.jwt_secret", "change-me")
+	v.SetDefault("auth.jwt_secret", "change-me-at-least-32-chars-long-!!!")
 	v.SetDefault("auth.jwt_issuer", "gokit-starter")
 	v.SetDefault("auth.jwt_ttl", 60)
 
@@ -129,10 +136,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("session.path", "/")
 	v.SetDefault("session.domain", "")
 
-	v.SetDefault("cache.store", "database")
-	v.SetDefault("cache.prefix", "")
+	v.SetDefault("cache.store", "redis")
+	v.SetDefault("cache.prefix", "gokit")
 
-	v.SetDefault("redis.client", "phpredis")
+	v.SetDefault("redis.client", "go-redis")
 	v.SetDefault("redis.host", "127.0.0.1")
 	v.SetDefault("redis.port", 6379)
 	v.SetDefault("redis.password", "")
