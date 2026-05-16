@@ -2,11 +2,11 @@ package domain
 
 import "github.com/google/uuid"
 
-// Organization represents the user's organization.
+// Organization represents a user's organization.
 type Organization struct {
-	ID     uuid.UUID
-	Name   string
-	Code   string
-	Type   string
-	Status string
+	ID     uuid.UUID `json:"id"`
+	Name   string    `json:"name"`
+	Code   string    `json:"code"`
+	Type   string    `json:"type"`
+	Status string    `json:"status"`
 }

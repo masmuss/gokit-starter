@@ -97,7 +97,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		svc := authapp.New(repo, hasher, token, 3600)
 		h := NewAuthHandler(
 			svc,
-			slog.New(slog.NewTextHandler(nil, &slog.HandlerOptions{})),
+			slog.New(slog.DiscardHandler),
 			validation.New(),
 		)
 
@@ -136,7 +136,11 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 			},
 		}
 		svc := authapp.New(repo, hasher, token, 3600)
-		h := NewAuthHandler(svc, slog.New(slog.NewTextHandler(nil, &slog.HandlerOptions{})), validation.New())
+		h := NewAuthHandler(
+			svc,
+			slog.New(slog.DiscardHandler),
+			validation.New(),
+		)
 
 		reqBody := `{"email":"alice@example.com","password":"secret123"}`
 		req := httptest.NewRequest("POST", "/auth/login", strings.NewReader(reqBody))
@@ -164,7 +168,11 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		hasher := &mockHasher{}
 		token := &mockToken{}
 		svc := authapp.New(repo, hasher, token, 3600)
-		h := NewAuthHandler(svc, slog.New(slog.NewTextHandler(nil, &slog.HandlerOptions{})), validation.New())
+		h := NewAuthHandler(
+			svc,
+			slog.New(slog.DiscardHandler),
+			validation.New(),
+		)
 
 		req := httptest.NewRequest("GET", "/auth/profile", nil)
 		// inject claims into context as middleware would

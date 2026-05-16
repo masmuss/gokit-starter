@@ -19,28 +19,31 @@ const domainTemplate = `package domain
 
 // {{.TitleName}} represents the domain entity.
 type {{.TitleName}} struct {
+	ID string ` + "`" + `json:"id"` + "`" + `
 	// Add fields here
-}
-
-// Repository defines the interface for {{.Name}} data persistence.
-type Repository interface {
-	// Add repository methods here
 }
 `
 
 const appTemplate = `package app
 
 import (
+	"context"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/domain"
 )
 
+// Repository defines the interface for {{.Name}} data persistence.
+type Repository interface {
+	// Add repository methods here
+	// Example: FindByID(ctx context.Context, id any) (domain.{{.TitleName}}, error)
+}
+
 // Service implements the use cases for {{.Name}}.
 type Service struct {
-	repo domain.Repository
+	repo Repository
 }
 
 // NewService creates a new {{.Name}} service.
-func NewService(repo domain.Repository) *Service {
+func NewService(repo Repository) *Service {
 	return &Service{
 		repo: repo,
 	}
@@ -51,10 +54,10 @@ const infraTemplate = `package infra
 
 import (
 	"github.com/masmuss/gokit-starter/internal/database/ent"
-	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/domain"
+	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 )
 
-// Repository implements domain.Repository using Ent.
+// Repository implements app.Repository using Ent.
 type Repository struct {
 	client *ent.Client
 }

@@ -2,10 +2,12 @@ package app
 
 import (
 	"net/http"
+	"time"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/masmuss/gokit-starter/docs"
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
@@ -35,7 +37,12 @@ func NewRouter(
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.CleanPath)
 	r.Use(secureMiddleware.Handler)
+	r.Use(middleware.Timeout(30 * time.Second))
+
+	// Rate limiting: 100 requests per minute per IP
+	r.Use(httprate.LimitByIP(100, 1*time.Minute))
 
 	// CORS configuration
 	r.Use(cors.Handler(cors.Options{
