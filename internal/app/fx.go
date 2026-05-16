@@ -12,7 +12,7 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
@@ -58,7 +58,7 @@ var Module = fx.Module("app",
 		provideServiceName,
 		handler.NewHealthHandler,
 		handler.NewAuthHandler,
-		deliverymiddleware.NewAuthMiddleware,
+		delivery_middleware.NewAuthMiddleware,
 		NewRouter,
 	),
 	fx.Invoke(RunServer),
