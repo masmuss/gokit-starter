@@ -7,6 +7,8 @@ gokit-starter/
 ├── cmd/
 │   └── server/
 │       └── main.go
+├── database/
+│   └── migrations/
 ├── docs/
 │   ├── brief.md
 │   └── folder-structure.md
@@ -16,6 +18,9 @@ gokit-starter/
 │   │   └── router.go
 │   ├── config/
 │   │   └── config.go
+│   ├── database/
+│   │   ├── ent/
+│   │   └── schema/
 │   ├── delivery/
 │   │   ├── handler/
 │   │   ├── middleware/
@@ -40,9 +45,11 @@ gokit-starter/
 ## Aturan pakai
 
 - `cmd/` hanya untuk entrypoint aplikasi;
+- `database/migrations` tempat menyimpan file SQL migrasi ter-versi;
 - `internal/app` tempat bootstrapping DI (Uber Fx) dan routing;
 - `internal/config` untuk konfigurasi runtime;
-- `internal/platform` untuk dependency umum seperti database, cache, dan logger;
+- `internal/database` tempat menyimpan skema dan hasil generate ORM (Ent);
+- `internal/platform` untuk dependency umum seperti wrapper database, cache, dan logger;
 - `internal/shared` untuk komponen yang mendukung komunikasi antar module (Event Bus) atau utilitas global (Shared Errors);
 - `internal/modules` untuk logic per domain;
 - `docs/` untuk catatan arsitektur dan keputusan awal.

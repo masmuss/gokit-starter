@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/masmuss/gokit-starter/internal/database/ent/enttest"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/enttest"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/jackc/pgx/v5/stdlib"

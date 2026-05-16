@@ -25,7 +25,8 @@ Gokit Starter adalah boilerplate untuk memulai project API Go dengan struktur ya
 - Dependency Injection (Uber Fx);
 - Config loader (Viper);
 - Logger terstruktur (Slog);
-- Koneksi database (PostgreSQL + Ent);
+- Koneksi database (PostgreSQL);
+- Schema dan migrasi ter-versi (Ent + Atlas);
 - Caching (Redis);
 - Standar Error Handling (Shared Errors);
 - Komunikasi antar module (Internal Event Bus);

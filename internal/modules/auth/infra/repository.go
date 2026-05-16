@@ -8,10 +8,10 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+	"github.com/masmuss/gokit-starter/internal/database/ent"
+	entuser "github.com/masmuss/gokit-starter/internal/database/ent/user"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent"
-	entuser "github.com/masmuss/gokit-starter/internal/platform/database/ent/user"
 )
 
 const (
