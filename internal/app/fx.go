@@ -56,6 +56,7 @@ var Module = fx.Module("app",
 		provideAuthExpiresIn,
 		authapp.New,
 		provideServiceName,
+		provideAppVersion,
 		handler.NewHealthHandler,
 		handler.NewAuthHandler,
 		delivery_middleware.NewAuthMiddleware,
@@ -74,6 +75,10 @@ func provideAuthExpiresIn(cfg *config.Config) int {
 
 func provideServiceName(cfg *config.Config) string {
 	return cfg.App.Name
+}
+
+func provideAppVersion(cfg *config.Config) string {
+	return cfg.App.Version
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.

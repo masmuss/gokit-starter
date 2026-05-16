@@ -9,9 +9,14 @@ import (
 	"go.uber.org/fx"
 )
 
+// version is injected at build time via -ldflags.
+// Example: go build -ldflags="-X main.version=v1.2.3" -o bin/app ./cmd/server
+var version = "dev"
+
 func main() {
+	os.Setenv("APP_VERSION", version)
+
 	if len(os.Args) > 1 && os.Args[1] == "viz" {
-		// Newer Fx uses fx.DotGraph to get the graph as a DOT string
 		var dot fx.DotGraph
 		app := fx.New(
 			app.Module,

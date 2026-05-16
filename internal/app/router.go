@@ -65,7 +65,7 @@ func NewRouter(
 
 	docs.SwaggerInfo.Title = cfg.App.Name
 	docs.SwaggerInfo.BasePath = "/"
-	docs.SwaggerInfo.Version = "0.1.0"
+	docs.SwaggerInfo.Version = cfg.App.Version
 	docs.SwaggerInfo.Description = "Boilerplate API starter with Chi, Ent, and JWT auth."
 	docs.SwaggerInfo.Host = ""
 	docs.SwaggerInfo.Schemes = []string{"http"}

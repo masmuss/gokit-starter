@@ -29,9 +29,9 @@ tasks:
       - go test -v -race ./...
 
   build:server:
-    desc: Build the server binary
+    desc: Build the server binary with version injected
     cmds:
-      - go build -o bin/app ./cmd/server
+      - go build -ldflags="-X main.version=$(git describe --always --abbrev=7 --dirty 2>/dev/null || echo dev)" -o bin/app ./cmd/server
 
   build:
     desc: Build all binaries
@@ -79,6 +79,19 @@ tasks:
     desc: Generate Swagger/OpenAPI docs
     cmds:
       - swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency
+
+  check:
+    desc: Run format, lint, test, and tidy
+    cmds:
+      - task: format
+      - task: lint
+      - task: test
+      - task: tidy
+
+  test-integration:
+    desc: Run integration tests (requires build tag)
+    cmds:
+      - go test -v -race -tags=integration ./internal/...
 
   format:
     desc: Format all Go files using gofmt

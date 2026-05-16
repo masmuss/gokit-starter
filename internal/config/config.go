@@ -26,11 +26,12 @@ type Config struct {
 
 // AppConfig holds application-level configuration.
 type AppConfig struct {
-	Name  string `mapstructure:"name"  validate:"required"`
-	Env   string `mapstructure:"env"   validate:"required,oneof=local development staging production"`
-	Debug bool   `mapstructure:"debug"`
-	URL   string `mapstructure:"url"   validate:"required,url"`
-	Port  int    `mapstructure:"port"  validate:"required,gt=0"`
+	Name    string `mapstructure:"name"    validate:"required"`
+	Env     string `mapstructure:"env"     validate:"required,oneof=local development staging production"`
+	Debug   bool   `mapstructure:"debug"`
+	URL     string `mapstructure:"url"     validate:"required,url"`
+	Port    int    `mapstructure:"port"    validate:"required,gt=0"`
+	Version string `mapstructure:"version"`
 }
 
 // DatabaseConfig holds database connection configuration.
@@ -113,6 +114,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.debug", true)
 	v.SetDefault("app.url", "http://localhost")
 	v.SetDefault("app.port", 8080)
+	v.SetDefault("app.version", "dev")
 
 	v.SetDefault("database.host", "127.0.0.1")
 	v.SetDefault("database.port", 5432)
@@ -154,6 +156,7 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("app.debug", "APP_DEBUG")
 	_ = v.BindEnv("app.url", "APP_URL")
 	_ = v.BindEnv("app.port", "APP_PORT")
+	_ = v.BindEnv("app.version", "APP_VERSION")
 
 	_ = v.BindEnv("database.host", "DB_HOST")
 	_ = v.BindEnv("database.port", "DB_PORT")

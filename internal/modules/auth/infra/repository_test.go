@@ -1,19 +1,20 @@
+//go:build integration
+
 package infra
 
 import (
 	"context"
 	"testing"
 
-	"github.com/masmuss/gokit-starter/internal/database/ent/enttest"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/test"
 	"github.com/stretchr/testify/require"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestRepository_CreateAccount(t *testing.T) {
-	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&cache=shared&_fk=1")
+	client := test.NewEntClient(t)
 	defer client.Close()
 
 	repo := NewRepository(client)
