@@ -3,7 +3,7 @@ package event
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/google/uuid"
@@ -49,31 +49,27 @@ func (b *InternalBus) Publish(ctx context.Context, e Event) error {
 		return nil
 	}
 
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(handlers))
+	var (
+		wg   sync.WaitGroup
+		mu   sync.Mutex
+		errs []error
+	)
 
 	for _, h := range handlers {
 		wg.Add(1)
 		go func(handler Handler) {
 			defer wg.Done()
 			if err := handler(ctx, e); err != nil {
-				errCh <- fmt.Errorf("handler for event %s failed: %w", e.Name, err)
+				mu.Lock()
+				errs = append(errs, err)
+				mu.Unlock()
 			}
 		}(h)
 	}
 
 	wg.Wait()
-	close(errCh)
 
-	// In a simple in-memory bus, we might just log errors or return the first one.
-	// For now, we return the first error found if any.
-	for err := range errCh {
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return errors.Join(errs...)
 }
 
 // Subscribe registers a handler for a specific event name.

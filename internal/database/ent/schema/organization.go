@@ -34,7 +34,8 @@ func (Organization) Fields() []ent.Field {
 			NotEmpty(),
 		field.String("code").
 			MaxLen(16).
-			NotEmpty(),
+			NotEmpty().
+			Unique(),
 		field.String("type").
 			NotEmpty(),
 		field.String("status").

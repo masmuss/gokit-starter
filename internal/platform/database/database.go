@@ -31,11 +31,11 @@ func New(_ context.Context, cfg *config.Config) (*DB, error) {
 
 	stdDB, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to open database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
 	}
 
 	if err = stdDB.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("failed to ping database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
 	}
 
 	drv := entsql.OpenDB("postgres", stdDB)

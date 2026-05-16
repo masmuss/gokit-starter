@@ -4,7 +4,6 @@ package validation
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"reflect"
 	"strings"
@@ -42,15 +41,17 @@ func New() *validator.Validate {
 
 // BindJSON decodes a JSON request body into dst.
 func BindJSON(r *http.Request, dst any) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
+	if r.Body == nil {
+		return errors.Join(ErrInvalidJSON, errors.New("empty request body"))
+	}
+	defer r.Body.Close()
+
+	// Limit body size to 1MB to prevent DoS.
+	limited := http.MaxBytesReader(nil, r.Body, 1<<20)
+	decoder := json.NewDecoder(limited)
 
 	if err := decoder.Decode(dst); err != nil {
 		return errors.Join(ErrInvalidJSON, err)
-	}
-
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return errors.Join(ErrInvalidJSON, errors.New("unexpected trailing data"))
 	}
 
 	return nil

@@ -1,4 +1,3 @@
-// Package handler contains HTTP delivery handlers.
 package handler
 
 import (
