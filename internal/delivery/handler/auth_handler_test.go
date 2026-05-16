@@ -55,11 +55,11 @@ func (m *mockHasher) Hash(password string) (string, error) { return m.hashFunc(p
 func (m *mockHasher) Compare(hash, password string) error  { return m.compareFunc(hash, password) }
 
 type mockToken struct {
-	issueFunc func(_ context.Context, _ uuid.UUID, _ string) (string, error)
+	issueFunc func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error)
 }
 
-func (m *mockToken) Issue(ctx context.Context, id uuid.UUID, email string) (string, error) {
-	return m.issueFunc(ctx, id, email)
+func (m *mockToken) Issue(ctx context.Context, id uuid.UUID, orgID uuid.UUID, email string) (string, error) {
+	return m.issueFunc(ctx, id, orgID, email)
 }
 
 func TestAuthHandler_Register_Login_Profile(t *testing.T) {
@@ -72,7 +72,13 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		Email:        "alice@example.com",
 		PasswordHash: "hashed",
 		Status:       "active",
-		Organization: domain.Organization{ID: orgID, Name: "Org", Code: "org-123", Type: "company", Status: "active"},
+		Organization: domain.Organization{
+			ID:     orgID,
+			Name:   "Org",
+			Code:   "org-123",
+			Type:   "company",
+			Status: "active",
+		},
 	}
 
 	// Register
@@ -84,7 +90,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		}
 		hasher := &mockHasher{hashFunc: func(_ string) (string, error) { return "hashed", nil }}
 		token := &mockToken{
-			issueFunc: func(_ context.Context, _ uuid.UUID, _ string) (string, error) {
+			issueFunc: func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error) {
 				return "tok-123", nil
 			},
 		}
@@ -125,7 +131,9 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		}}
 		hasher := &mockHasher{compareFunc: func(_ string, _ string) error { return nil }}
 		token := &mockToken{
-			issueFunc: func(_ context.Context, _ uuid.UUID, _ string) (string, error) { return "tok-login", nil },
+			issueFunc: func(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ string) (string, error) {
+				return "tok-login", nil
+			},
 		}
 		svc := authapp.New(repo, hasher, token, 3600)
 		h := NewAuthHandler(svc, slog.New(slog.NewTextHandler(nil, &slog.HandlerOptions{})), validation.New())
@@ -160,7 +168,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/auth/profile", nil)
 		// inject claims into context as middleware would
-		claims := auth.Claims{UserID: userID, Email: sampleUser.Email}
+		claims := auth.Claims{UserID: userID, OrganizationID: orgID, Email: sampleUser.Email}
 		req = req.WithContext(auth.WithClaims(req.Context(), claims))
 		rr := httptest.NewRecorder()
 

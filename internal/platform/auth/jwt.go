@@ -16,7 +16,7 @@ var ErrInvalidToken = errors.New("invalid token")
 
 // TokenIssuer issues access tokens.
 type TokenIssuer interface {
-	Issue(context.Context, uuid.UUID, string) (string, error)
+	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
 }
 
 // TokenVerifier verifies access tokens.
@@ -26,13 +26,15 @@ type TokenVerifier interface {
 
 // Claims contains the authenticated identity.
 type Claims struct {
-	UserID uuid.UUID
-	Email  string
+	UserID         uuid.UUID
+	OrganizationID uuid.UUID
+	Email          string
 }
 
 type jwtClaims struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email,omitempty"`
+	UserID         string `json:"user_id"`
+	OrganizationID string `json:"organization_id"`
+	Email          string `json:"email,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -66,11 +68,12 @@ func NewJWTManagerFromConfig(cfg *config.Config) *JWTManager {
 }
 
 // Issue returns a signed JWT access token.
-func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, email string) (string, error) {
+func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
 	now := time.Now().UTC()
 	claims := jwtClaims{
-		UserID: userID.String(),
-		Email:  email,
+		UserID:         userID.String(),
+		OrganizationID: orgID.String(),
+		Email:          email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   userID.String(),
@@ -111,8 +114,14 @@ func (m *JWTManager) Verify(token string) (Claims, error) {
 		return Claims{}, fmt.Errorf("%w: %w", ErrInvalidToken, err)
 	}
 
+	orgID, err := uuid.Parse(claims.OrganizationID)
+	if err != nil {
+		return Claims{}, fmt.Errorf("%w: %w", ErrInvalidToken, err)
+	}
+
 	return Claims{
-		UserID: userID,
-		Email:  claims.Email,
+		UserID:         userID,
+		OrganizationID: orgID,
+		Email:          claims.Email,
 	}, nil
 }

@@ -28,7 +28,7 @@ type PasswordHasher interface {
 
 // TokenIssuer issues access tokens.
 type TokenIssuer interface {
-	Issue(context.Context, uuid.UUID, string) (string, error)
+	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
 }
 
 // Service implements auth use cases.
@@ -66,7 +66,7 @@ func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (dom
 		return domain.Session{}, domain.Profile{}, err
 	}
 
-	token, err := s.tokens.Issue(ctx, createdUser.ID, createdUser.Email)
+	token, err := s.tokens.Issue(ctx, createdUser.ID, createdUser.Organization.ID, createdUser.Email)
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue token: %w", err)
 	}
@@ -85,7 +85,7 @@ func (s *Service) Login(ctx context.Context, credentials domain.Credentials) (do
 		return domain.Session{}, domain.Profile{}, domain.ErrInvalidCredentials
 	}
 
-	token, err := s.tokens.Issue(ctx, user.ID, user.Email)
+	token, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email)
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue token: %w", err)
 	}

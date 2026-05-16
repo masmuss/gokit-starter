@@ -28,3 +28,13 @@ func CurrentUserID(ctx context.Context) (uuid.UUID, bool) {
 
 	return claims.UserID, true
 }
+
+// CurrentOrganizationID returns the authenticated organization ID from context.
+func CurrentOrganizationID(ctx context.Context) (uuid.UUID, bool) {
+	claims, ok := ClaimsFromContext(ctx)
+	if !ok {
+		return uuid.UUID{}, false
+	}
+
+	return claims.OrganizationID, true
+}

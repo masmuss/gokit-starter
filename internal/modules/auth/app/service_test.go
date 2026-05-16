@@ -45,7 +45,9 @@ func TestService_Register_Login_Profile(t *testing.T) {
 			return input.Name == "Alice" && input.Email == "alice@example.com"
 		}), "hashed").Return(sampleUser, nil)
 
-		token.EXPECT().Issue(mock.Anything, sampleUser.ID, sampleUser.Email).Return("tok-123", nil)
+		token.EXPECT().
+			Issue(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email).
+			Return("tok-123", nil)
 
 		svc := New(repo, hasher, token, 3600)
 
@@ -68,7 +70,9 @@ func TestService_Register_Login_Profile(t *testing.T) {
 
 		repo.EXPECT().FindByEmail(mock.Anything, "alice@example.com").Return(sampleUser, nil)
 		hasher.EXPECT().Compare("hashed", "secret").Return(nil)
-		token.EXPECT().Issue(mock.Anything, sampleUser.ID, sampleUser.Email).Return("tok-login", nil)
+		token.EXPECT().
+			Issue(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email).
+			Return("tok-login", nil)
 
 		svc := New(repo, hasher, token, 3600)
 
