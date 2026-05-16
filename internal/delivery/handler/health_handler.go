@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 )
 
@@ -43,4 +44,9 @@ func (h *HealthHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		Service: h.serviceName,
 		Status:  "ok",
 	}, "ok"))
+}
+
+// RegisterRoutes registers health routes on the given router.
+func (h *HealthHandler) RegisterRoutes(r chi.Router) {
+	r.Get("/health", h.Handle)
 }
