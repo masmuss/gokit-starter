@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent"
+	"github.com/masmuss/gokit-starter/internal/database/ent"
 )
 
 // The OrganizationFunc type is an adapter to allow the use of ordinary

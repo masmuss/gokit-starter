@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/organization"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/user"
+	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
+	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )
 
 // ent aliases to avoid import conflicts in user's code.

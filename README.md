@@ -84,10 +84,10 @@ Gunakan `task` untuk menjalankan perintah umum:
 Proyek ini menggunakan **Versioned Migrations** melalui **Atlas**. Jangan melakukan perubahan database secara manual atau mengandalkan auto-migration di produksi.
 
 ### Alur Perubahan Skema:
-1. Modifikasi skema di `internal/platform/database/ent/schema/`.
+1. Modifikasi skema di `internal/database/schema/`.
 2. Jalankan `task generate` untuk memperbarui kode Go.
 3. Jalankan `task db:diff name=deskripsi_perubahan` untuk membuat file migrasi `.sql`.
-4. Review file SQL yang dihasilkan di folder `internal/platform/database/migrations/`.
+4. Review file SQL yang dihasilkan di folder `database/migrations/`.
 5. Jalankan `task db:migrate` untuk menerapkan perubahan ke database lokal Anda.
 
 ## 🧪 Testing & Mocks
@@ -104,6 +104,12 @@ Mocks akan tersedia di folder `test/mocks/` dan siap digunakan dalam file `*_tes
 
 1. Buat branch baru dari `dev`.
 2. Pastikan `task test` dan `task lint` lulus sebelum membuat Pull Request.
+3. Ikuti standar penamaan dan arsitektur yang sudah ada di `internal/modules`.
+
+---
+
+_Gokit Starter - Built for developers who love clean and maintainable code._
+` dan `task lint` lulus sebelum membuat Pull Request.
 3. Ikuti standar penamaan dan arsitektur yang sudah ada di `internal/modules`.
 
 ---

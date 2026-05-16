@@ -11,13 +11,13 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/migrate"
+	"github.com/masmuss/gokit-starter/internal/database/ent/migrate"
 )
 
 func main() {
 	ctx := context.Background()
 	// Create a local directory for the migration files.
-	dir, err := atlas.NewLocalDir("internal/platform/database/migrations")
+	dir, err := atlas.NewLocalDir("database/migrations")
 	if err != nil {
 		log.Fatalf("failed creating atlas migration directory: %v", err)
 	}

@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/organization"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/predicate"
+	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
+	"github.com/masmuss/gokit-starter/internal/database/ent/predicate"
 )
 
 // OrganizationDelete is the builder for deleting a Organization entity.

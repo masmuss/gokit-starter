@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/organization"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/user"
+	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
+	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )
 
 // OrganizationCreate is the builder for creating a Organization entity.

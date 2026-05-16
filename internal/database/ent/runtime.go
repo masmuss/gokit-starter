@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/organization"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/schema"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/user"
+	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
+	"github.com/masmuss/gokit-starter/internal/database/ent/schema"
+	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code

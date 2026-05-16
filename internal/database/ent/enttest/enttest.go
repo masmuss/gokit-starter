@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent"
+	"github.com/masmuss/gokit-starter/internal/database/ent"
 	// required by schema hooks.
-	_ "github.com/masmuss/gokit-starter/internal/platform/database/ent/runtime"
+	_ "github.com/masmuss/gokit-starter/internal/database/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/migrate"
+	"github.com/masmuss/gokit-starter/internal/database/ent/migrate"
 )
 
 type (

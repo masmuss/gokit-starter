@@ -11,7 +11,7 @@ import (
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/masmuss/gokit-starter/internal/config"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent"
+	"github.com/masmuss/gokit-starter/internal/database/ent"
 )
 
 // DB wraps ent.Client for database operations.

@@ -8,7 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/predicate"
+	"github.com/masmuss/gokit-starter/internal/database/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.

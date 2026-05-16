@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/platform/database/ent/organization"
+	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
 )
 
 // Organization is the model entity for the Organization schema.
