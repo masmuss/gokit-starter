@@ -11,15 +11,24 @@ gokit-starter/
 │   ├── brief.md
 │   └── folder-structure.md
 ├── internal/
+│   ├── app/
+│   │   ├── fx.go
+│   │   └── router.go
 │   ├── config/
 │   │   └── config.go
+│   ├── delivery/
+│   │   ├── handler/
+│   │   ├── middleware/
+│   │   └── response/
 │   ├── platform/
+│   │   ├── auth/
+│   │   ├── cache/
 │   │   ├── database/
-│   │   │   └── database.go
 │   │   ├── logger/
-│   │   │   └── logger.go
 │   │   └── validation/
-│   │       └── validation.go
+│   ├── shared/
+│   │   ├── errors/
+│   │   └── event/
 │   └── modules/
 │       └── <domain>/
 │           ├── app/
@@ -31,8 +40,10 @@ gokit-starter/
 ## Aturan pakai
 
 - `cmd/` hanya untuk entrypoint aplikasi;
+- `internal/app` tempat bootstrapping DI (Uber Fx) dan routing;
 - `internal/config` untuk konfigurasi runtime;
-- `internal/platform` untuk dependency umum seperti database dan logger;
+- `internal/platform` untuk dependency umum seperti database, cache, dan logger;
+- `internal/shared` untuk komponen yang mendukung komunikasi antar module (Event Bus) atau utilitas global (Shared Errors);
 - `internal/modules` untuk logic per domain;
 - `docs/` untuk catatan arsitektur dan keputusan awal.
 

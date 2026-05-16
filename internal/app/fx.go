@@ -16,9 +16,11 @@ import (
 	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
 	"github.com/masmuss/gokit-starter/internal/platform/auth"
+	"github.com/masmuss/gokit-starter/internal/platform/cache"
 	"github.com/masmuss/gokit-starter/internal/platform/database"
 	"github.com/masmuss/gokit-starter/internal/platform/logger"
 	"github.com/masmuss/gokit-starter/internal/platform/validation"
+	"github.com/masmuss/gokit-starter/internal/shared/event"
 	"go.uber.org/fx"
 )
 
@@ -29,6 +31,16 @@ var Module = fx.Module("app",
 		config.LoadConfig,
 		provideLogger,
 		database.New,
+		cache.NewRedisClient,
+		fx.Annotate(
+			cache.NewRedisCache,
+			fx.As(new(cache.Cache)),
+		),
+		event.NewInternalBus,
+		fx.Annotate(
+			func(b *event.InternalBus) event.Bus { return b },
+			fx.As(new(event.Bus)),
+		),
 		validation.New,
 		auth.NewBcryptHasherFromConfig,
 		auth.NewJWTManagerFromConfig,
@@ -75,8 +87,8 @@ func RunServer(lc fx.Lifecycle, cfg *config.Config, log *slog.Logger, router htt
 			log.InfoContext(ctx, "server started", "addr", srv.Addr)
 
 			go func() {
-				if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.ErrorContext(context.Background(), "server error", "error", err)
+				if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+					log.ErrorContext(context.Background(), "server error", "error", serveErr)
 				}
 			}()
 

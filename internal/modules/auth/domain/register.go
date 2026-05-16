@@ -5,5 +5,5 @@ type RegisterInput struct {
 	Name             string
 	Email            string
 	Password         string
-	OrganizationName string
+	OrganizationName string // Optional for personal accounts
 }

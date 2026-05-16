@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   github_com_masmuss_gokit-starter_internal_delivery_response.Envelope:
     properties:
@@ -84,9 +83,6 @@ definitions:
     type: object
 info:
   contact: {}
-  description: Boilerplate API Go with Chi, Ent, and PostgreSQL.
-  title: Gokit Starter API
-  version: 0.1.0
 paths:
   /auth/login:
     post:
@@ -180,11 +176,4 @@ paths:
       summary: Health check
       tags:
       - health
-schemes:
-- http
-securityDefinitions:
-  BearerAuth:
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"

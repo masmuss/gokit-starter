@@ -7,6 +7,8 @@ Gokit Starter adalah boilerplate modern untuk membangun API menggunakan Go. Proy
 - **Framework**: [Go-Chi](https://github.com/go-chi/chi) (Router)
 - **Dependency Injection**: [Uber Fx](https://github.com/uber-go/fx)
 - **ORM**: [Ent](https://entgo.io/) (Entity Framework for Go)
+- **Caching**: [Redis](https://redis.io/) (via [go-redis](https://github.com/redis/go-redis))
+- **Communication**: Internal In-Memory Event Bus
 - **Validation**: [Go-Playground Validator](https://github.com/go-playground/validator)
 - **Logging**: [Slog](https://pkg.go.dev/log/slog) (Standard Library)
 - **Testing**: [Testify](https://github.com/stretchr/testify) & [Mockery](https://github.com/vektra/mockery) (Automated Mocks)
@@ -29,7 +31,8 @@ Struktur ini mengikuti pola yang memisahkan infrastruktur, transport layer, dan 
 │   │       ├── app/    # Service / Use Cases
 │   │       ├── domain/ # Kontrak, Entitas, & Error Domain
 │   │       └── infra/  # Implementasi Repository (Database)
-│   └── platform/       # Cross-cutting concerns (DB, Logger, Auth Utils)
+│   ├── platform/       # Cross-cutting concerns (DB, Logger, Redis, Auth Utils)
+│   └── shared/         # Komponen bersama (Event Bus, Standardized Errors)
 ├── test/
 │   └── mocks/          # Mock yang dihasilkan secara otomatis
 └── taskfile.yml        # Task runner (pengganti Makefile)
@@ -38,10 +41,9 @@ Struktur ini mengikuti pola yang memisahkan infrastruktur, transport layer, dan 
 ## 🛠️ Persiapan Pengembangan
 
 Pastikan Anda sudah menginstal:
-
 - Go 1.21+
 - [Task](https://taskfile.dev/installation/) (`brew install go-task`)
-- Docker (untuk database PostgreSQL)
+- Docker (untuk database PostgreSQL dan Redis)
 
 ### Langkah Awal
 
@@ -53,9 +55,9 @@ Pastikan Anda sudah menginstal:
    ```bash
    cp .env.example .env
    ```
-3. Jalankan infrastruktur (PostgreSQL):
+3. Jalankan infrastruktur (PostgreSQL & Redis):
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 4. Jalankan aplikasi dengan hot-reload:
    ```bash
@@ -70,8 +72,10 @@ Gunakan `task` untuk menjalankan perintah umum:
 - `task test`: Menjalankan semua unit test.
 - `task mocks`: Menghasilkan mock otomatis menggunakan Mockery.
 - `task generate`: Menghasilkan kode Ent dari skema.
+- `task docs:generate`: Menghasilkan dokumentasi Swagger/OpenAPI.
 - `task lint`: Menjalankan linter (golangci-lint).
 - `task format`: Merapikan format kode Go.
+
 
 ## 🧪 Testing & Mocks
 
