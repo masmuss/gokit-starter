@@ -6,7 +6,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/masmuss/gokit-starter/internal/delivery"
-	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	infraauth "github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
@@ -30,7 +30,7 @@ var Module = fx.Module("auth",
 		),
 		handler.NewAuthHandler,
 		fx.Annotate(
-			func(h *handler.AuthHandler, m *delivery_middleware.AuthMiddleware) delivery.RouteRegistrar {
+			func(h *handler.AuthHandler, m *deliverymiddleware.AuthMiddleware) delivery.RouteRegistrar {
 				return delivery.RouteRegistrarFunc(func(r chi.Router) {
 					h.RegisterRoutes(r, m)
 				})

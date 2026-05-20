@@ -15,7 +15,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
@@ -66,7 +66,7 @@ var Module = fx.Module("app",
 			fx.As(new(delivery.RouteRegistrar)),
 			fx.ResultTags(`group:"routes"`),
 		),
-		delivery_middleware.NewAuthMiddleware,
+		deliverymiddleware.NewAuthMiddleware,
 		provideDocBuilder,
 		doc.NewHandler,
 		fx.Annotate(
