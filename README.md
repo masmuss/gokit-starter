@@ -12,7 +12,7 @@ Gokit Starter adalah boilerplate modern untuk membangun API menggunakan Go. Proy
 - **Validation**: [Go-Playground Validator](https://github.com/go-playground/validator)
 - **Logging**: [Slog](https://pkg.go.dev/log/slog) (Standard Library)
 - **Testing**: [Testify](https://github.com/stretchr/testify) & [Mockery](https://github.com/vektra/mockery) (Automated Mocks)
-- **Documentation**: [Swagger/OpenAPI](https://github.com/swaggo/swag)
+- **Documentation**: [swaggest/openapi-go](https://github.com/swaggest/openapi-go) + [Scalar](https://scalar.com/)
 - **Otomasi**: [Taskfile](https://taskfile.dev/), [Lefthook](https://github.com/evilmartians/lefthook), & [Atlas](https://atlasgo.io/)
 
 ## 📁 Struktur Folder
@@ -23,7 +23,7 @@ Struktur ini memisahkan antara infrastruktur, transport layer, dan business logi
 ├── cmd/                # Entry points aplikasi
 ├── database/           # Aset database (SQL Migrations)
 │   └── migrations/     # File migrasi ter-versi (Atlas)
-├── docs/               # Dokumentasi arsitektur & Swagger UI
+├── docs/               # Dokumen arsitektur proyek
 ├── internal/
 │   ├── app/            # Bootstrapping (Fx Modules, Router setup)
 │   ├── config/         # Konfigurasi runtime (Viper + Validation)
