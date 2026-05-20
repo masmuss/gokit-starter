@@ -10,6 +10,10 @@ orchestrator
 # Air (Hot Reload) temporary folder
 tmp/
 
+# Script binaries
+scripts/generator/generator
+scripts/generator/generator.exe
+
 # Go specific
 
 # IDE / Editor
