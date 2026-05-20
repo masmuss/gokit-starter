@@ -25,6 +25,9 @@ var Module = fx.Module("auth",
 			func(m *infraauth.JWTManager) app.TokenIssuer { return m },
 		),
 		app.New,
+		fx.Annotate(
+			func(s *app.Service) handler.AuthService { return s },
+		),
 		handler.NewAuthHandler,
 		fx.Annotate(
 			func(h *handler.AuthHandler, m *delivery_middleware.AuthMiddleware) delivery.RouteRegistrar {

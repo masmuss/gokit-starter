@@ -20,6 +20,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	authmodule "github.com/masmuss/gokit-starter/internal/modules/auth"
+	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 	"github.com/masmuss/gokit-starter/internal/pkg/eventbus"
 	"github.com/masmuss/gokit-starter/internal/pkg/logger"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
@@ -51,17 +52,26 @@ var Module = fx.Module("app",
 			fx.As(new(auth.TokenVerifier)),
 		),
 		provideAuthExpiresIn,
-		provideServiceName,
-		provideAppVersion,
+		fx.Annotate(
+			provideServiceName,
+			fx.ResultTags(`name:"serviceName"`),
+		),
+		fx.Annotate(
+			provideAppVersion,
+			fx.ResultTags(`name:"appVersion"`),
+		),
 		fx.Annotate(
 			handler.NewHealthHandler,
+			fx.ParamTags(`name:"serviceName"`, `name:"appVersion"`, ``),
 			fx.As(new(delivery.RouteRegistrar)),
 			fx.ResultTags(`group:"routes"`),
 		),
 		delivery_middleware.NewAuthMiddleware,
+		provideDocBuilder,
+		doc.NewHandler,
 		fx.Annotate(
 			NewRouter,
-			fx.ParamTags(``, `group:"routes"`),
+			fx.ParamTags(``, ``, `group:"routes"`),
 		),
 	),
 	fx.Invoke(RunServer),
@@ -82,6 +92,10 @@ func provideServiceName(cfg *config.Config) string {
 
 func provideAppVersion(cfg *config.Config) string {
 	return cfg.App.Version
+}
+
+func provideDocBuilder(cfg *config.Config) *doc.Builder {
+	return doc.NewBuilder(cfg.App.Name, cfg.App.Version, "Boilerplate API starter with Chi, Ent, and JWT auth.")
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.
