@@ -76,9 +76,9 @@ tasks:
       DB_NAME: '{{default "gokit_starter" .DB_NAME}}'
 
   docs:generate:
-    desc: Generate Swagger/OpenAPI docs
+    desc: OpenAPI spec is built programmatically at runtime (no generation needed)
     cmds:
-      - swag init -g cmd/server/main.go -o docs --parseInternal --parseDependency
+      - echo "OpenAPI spec is built programmatically. Run the server and visit /docs/."
 
   check:
     desc: Run format, lint, test, and tidy

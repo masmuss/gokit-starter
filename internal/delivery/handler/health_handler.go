@@ -1,3 +1,4 @@
+// Package handler provides HTTP handlers for cross-cutting concerns.
 package handler
 
 import (
@@ -5,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 )
 
@@ -31,12 +33,6 @@ func NewHealthHandler(serviceName, version string, log *slog.Logger) *HealthHand
 }
 
 // Handle returns the current service health status.
-// @Summary Health check
-// @Description Returns the current service status.
-// @Tags health
-// @Produce json
-// @Success 200 {object} response.Envelope
-// @Router /health [get]
 func (h *HealthHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if h.log != nil {
 		h.log.DebugContext(r.Context(), "health check", "path", r.URL.Path)
@@ -49,12 +45,6 @@ func (h *HealthHandler) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 // Version returns the build version info.
-// @Summary Application version
-// @Description Returns the build version of the application.
-// @Tags health
-// @Produce json
-// @Success 200 {object} response.Envelope
-// @Router /version [get]
 func (h *HealthHandler) Version(w http.ResponseWriter, _ *http.Request) {
 	_ = response.WriteJSON(w, http.StatusOK, response.OK(map[string]string{
 		"service": h.serviceName,

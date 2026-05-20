@@ -12,7 +12,7 @@ Gokit Starter adalah boilerplate modern untuk membangun API menggunakan Go. Proy
 - **Validation**: [Go-Playground Validator](https://github.com/go-playground/validator)
 - **Logging**: [Slog](https://pkg.go.dev/log/slog) (Standard Library)
 - **Testing**: [Testify](https://github.com/stretchr/testify) & [Mockery](https://github.com/vektra/mockery) (Automated Mocks)
-- **Documentation**: [Swagger/OpenAPI](https://github.com/swaggo/swag)
+- **Documentation**: [swaggest/openapi-go](https://github.com/swaggest/openapi-go) + [Scalar](https://scalar.com/)
 - **Otomasi**: [Taskfile](https://taskfile.dev/), [Lefthook](https://github.com/evilmartians/lefthook), & [Atlas](https://atlasgo.io/)
 
 ## 📁 Struktur Folder
@@ -23,19 +23,28 @@ Struktur ini memisahkan antara infrastruktur, transport layer, dan business logi
 ├── cmd/                # Entry points aplikasi
 ├── database/           # Aset database (SQL Migrations)
 │   └── migrations/     # File migrasi ter-versi (Atlas)
-├── docs/               # Dokumentasi arsitektur & Swagger UI
 ├── internal/
 │   ├── app/            # Bootstrapping (Fx Modules, Router setup)
 │   ├── config/         # Konfigurasi runtime (Viper + Validation)
 │   ├── database/       # Implementasi ORM (Ent, Schema)
-│   ├── delivery/       # Transport layer (HTTP Handlers, Middleware, Response)
+│   ├── delivery/       # Transport layer (HTTP Middleware, Response)
+│   ├── infra/          # Infrastructure (butuh config/external system)
+│   │   ├── auth/       # JWT, bcrypt, context helpers
+│   │   ├── cache/      # Redis wrapper + NullCache
+│   │   └── database/   # Ent client wrapper
 │   ├── modules/        # Domain business logic (Modular Monolith)
 │   │   └── auth/       # Contoh module: Auth
 │   │       ├── app/    # Service / Use Cases
 │   │       ├── domain/ # Kontrak, Entitas, & Error Domain
+│   │       ├── handler/# HTTP Handler (self-contained dalam modul)
 │   │       └── infra/  # Implementasi Repository
-│   ├── platform/       # Cross-cutting concerns (DB Wrapper, Logger, Redis, Auth Utils)
-│   └── shared/         # Komponen bersama (Event Bus, Standardized Errors)
+│   └── pkg/            # Utilities (pure logic, tanpa external dep)
+│       ├── apperr/     # Standardized error types
+│       ├── doc/        # OpenAPI spec builder + Scalar UI
+│       ├── eventbus/   # In-memory event bus
+│       ├── logger/     # slog wrapper
+│       ├── pagination/ # Pagination helpers
+│       └── validate/   # Validator wrapper
 ├── scripts/            # Script pembantu (Module Generator)
 ├── test/
 │   └── mocks/          # Mock yang dihasilkan secara otomatis (Mockery)
@@ -114,6 +123,8 @@ Pastikan Anda sudah menginstal:
    ```bash
    task server
    ```
+
+Setelah server berjalan, akses dokumentasi API di **`http://localhost:8080/docs/`** (Scalar UI).
 
 ## ⌨️ Perintah Task (Taskfile)
 

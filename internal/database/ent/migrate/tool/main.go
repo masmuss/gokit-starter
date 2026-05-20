@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
+
 	"github.com/masmuss/gokit-starter/internal/database/ent/migrate"
 )
 

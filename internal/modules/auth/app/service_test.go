@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	"github.com/masmuss/gokit-starter/test/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/test/mocks"
 )
 
 func TestService_Register_Login_Profile(t *testing.T) {

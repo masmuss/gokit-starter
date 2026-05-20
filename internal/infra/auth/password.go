@@ -2,8 +2,9 @@
 package auth
 
 import (
-	"github.com/masmuss/gokit-starter/internal/config"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/masmuss/gokit-starter/internal/config"
 )
 
 const defaultBcryptCost = bcrypt.DefaultCost
