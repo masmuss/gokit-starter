@@ -23,7 +23,6 @@ Struktur ini memisahkan antara infrastruktur, transport layer, dan business logi
 ├── cmd/                # Entry points aplikasi
 ├── database/           # Aset database (SQL Migrations)
 │   └── migrations/     # File migrasi ter-versi (Atlas)
-├── docs/               # Dokumen arsitektur proyek
 ├── internal/
 │   ├── app/            # Bootstrapping (Fx Modules, Router setup)
 │   ├── config/         # Konfigurasi runtime (Viper + Validation)
@@ -41,6 +40,7 @@ Struktur ini memisahkan antara infrastruktur, transport layer, dan business logi
 │   │       └── infra/  # Implementasi Repository
 │   └── pkg/            # Utilities (pure logic, tanpa external dep)
 │       ├── apperr/     # Standardized error types
+│       ├── doc/        # OpenAPI spec builder + Scalar UI
 │       ├── eventbus/   # In-memory event bus
 │       ├── logger/     # slog wrapper
 │       ├── pagination/ # Pagination helpers
@@ -123,6 +123,8 @@ Pastikan Anda sudah menginstal:
    ```bash
    task server
    ```
+
+Setelah server berjalan, akses dokumentasi API di **`http://localhost:8080/docs/`** (Scalar UI).
 
 ## ⌨️ Perintah Task (Taskfile)
 
