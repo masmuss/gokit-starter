@@ -6,9 +6,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/test"
-	"github.com/stretchr/testify/require"
 
 	_ "github.com/mattn/go-sqlite3"
 )

@@ -10,18 +10,19 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/masmuss/gokit-starter/internal/config"
+	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
 	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	authapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
-	authinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
-	"github.com/masmuss/gokit-starter/internal/platform/auth"
-	"github.com/masmuss/gokit-starter/internal/platform/cache"
-	"github.com/masmuss/gokit-starter/internal/platform/database"
-	"github.com/masmuss/gokit-starter/internal/platform/eventbus"
-	"github.com/masmuss/gokit-starter/internal/platform/logger"
-	"github.com/masmuss/gokit-starter/internal/platform/validation"
-	"go.uber.org/fx"
+	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/cache"
+	"github.com/masmuss/gokit-starter/internal/infra/database"
+	authmodule "github.com/masmuss/gokit-starter/internal/modules/auth"
+	"github.com/masmuss/gokit-starter/internal/pkg/eventbus"
+	"github.com/masmuss/gokit-starter/internal/pkg/logger"
+	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
 
 // Module is the main application module for Fx.
@@ -32,16 +33,13 @@ var Module = fx.Module("app",
 		provideLogger,
 		database.New,
 		cache.NewRedisClientOptional,
-		fx.Annotate(
-			cache.NewRedisCache,
-			fx.As(new(cache.Cache)),
-		),
+		cache.NewCache,
 		eventbus.NewInternalBus,
 		fx.Annotate(
 			func(b *eventbus.InternalBus) eventbus.Bus { return b },
 			fx.As(new(eventbus.Bus)),
 		),
-		validation.New,
+		validate.New,
 		auth.NewBcryptHasherFromConfig,
 		auth.NewJWTManagerFromConfig,
 		fx.Annotate(
@@ -52,17 +50,22 @@ var Module = fx.Module("app",
 			func(m *auth.JWTManager) auth.TokenVerifier { return m },
 			fx.As(new(auth.TokenVerifier)),
 		),
-		authinfra.NewRepositoryFromDB,
 		provideAuthExpiresIn,
-		authapp.New,
 		provideServiceName,
 		provideAppVersion,
-		handler.NewHealthHandler,
-		handler.NewAuthHandler,
+		fx.Annotate(
+			handler.NewHealthHandler,
+			fx.As(new(delivery.RouteRegistrar)),
+			fx.ResultTags(`group:"routes"`),
+		),
 		delivery_middleware.NewAuthMiddleware,
-		NewRouter,
+		fx.Annotate(
+			NewRouter,
+			fx.ParamTags(``, `group:"routes"`),
+		),
 	),
 	fx.Invoke(RunServer),
+	authmodule.Module,
 )
 
 func provideLogger(cfg *config.Config) *slog.Logger {

@@ -1,4 +1,5 @@
-package response
+// Package apperr provides standardized application error types.
+package apperr
 
 import (
 	"errors"
@@ -21,15 +22,15 @@ const (
 	KindValidation
 )
 
-// AppError represents a standardized application error.
-type AppError struct {
+// Error represents a standardized application error.
+type Error struct {
 	Kind    Kind
 	Code    string
 	Message string
 	Err     error
 }
 
-func (e *AppError) Error() string {
+func (e *Error) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("%s: %v", e.Message, e.Err)
 	}
@@ -37,22 +38,22 @@ func (e *AppError) Error() string {
 }
 
 // Unwrap returns the underlying error.
-func (e *AppError) Unwrap() error {
+func (e *Error) Unwrap() error {
 	return e.Err
 }
 
-// New creates a new AppError.
-func New(kind Kind, code, message string) *AppError {
-	return &AppError{
+// New creates a new Error.
+func New(kind Kind, code, message string) *Error {
+	return &Error{
 		Kind:    kind,
 		Code:    code,
 		Message: message,
 	}
 }
 
-// Wrap wraps an existing error into an AppError.
-func Wrap(err error, kind Kind, code, message string) *AppError {
-	return &AppError{
+// Wrap wraps an existing error into an Error.
+func Wrap(err error, kind Kind, code, message string) *Error {
+	return &Error{
 		Kind:    kind,
 		Code:    code,
 		Message: message,
@@ -62,7 +63,7 @@ func Wrap(err error, kind Kind, code, message string) *AppError {
 
 // HTTPStatus returns the HTTP status code associated with the error kind.
 func HTTPStatus(err error) int {
-	var appErr *AppError
+	var appErr *Error
 	if !errors.As(err, &appErr) {
 		return http.StatusInternalServerError
 	}
@@ -89,7 +90,7 @@ func HTTPStatus(err error) int {
 
 // ErrorCode returns the machine-readable error code.
 func ErrorCode(err error) string {
-	var appErr *AppError
+	var appErr *Error
 	if errors.As(err, &appErr) {
 		return appErr.Code
 	}
@@ -97,36 +98,36 @@ func ErrorCode(err error) string {
 }
 
 // Internal creates a KindInternal error.
-func Internal(code, message string) *AppError {
+func Internal(code, message string) *Error {
 	return New(KindInternal, code, message)
 }
 
 // NotFound creates a KindNotFound error.
-func NotFound(code, message string) *AppError {
+func NotFound(code, message string) *Error {
 	return New(KindNotFound, code, message)
 }
 
 // Unauthorized creates a KindUnauthorized error.
-func Unauthorized(code, message string) *AppError {
+func Unauthorized(code, message string) *Error {
 	return New(KindUnauthorized, code, message)
 }
 
 // Forbidden creates a KindForbidden error.
-func Forbidden(code, message string) *AppError {
+func Forbidden(code, message string) *Error {
 	return New(KindForbidden, code, message)
 }
 
 // BadRequest creates a KindBadRequest error.
-func BadRequest(code, message string) *AppError {
+func BadRequest(code, message string) *Error {
 	return New(KindBadRequest, code, message)
 }
 
 // Conflict creates a KindConflict error.
-func Conflict(code, message string) *AppError {
+func Conflict(code, message string) *Error {
 	return New(KindConflict, code, message)
 }
 
 // Validation creates a KindValidation error.
-func Validation(code, message string) *AppError {
+func Validation(code, message string) *Error {
 	return New(KindValidation, code, message)
 }

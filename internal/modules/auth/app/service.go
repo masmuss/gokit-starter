@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 )
 

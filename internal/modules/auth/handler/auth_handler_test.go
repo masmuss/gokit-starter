@@ -11,9 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	"github.com/masmuss/gokit-starter/internal/platform/auth"
-	"github.com/masmuss/gokit-starter/internal/platform/validation"
+	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
 
 type mockAuthService struct {
@@ -68,7 +68,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 				}, sampleProfile, nil
 			},
 		}
-		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validate.New())
 
 		reqBody := `{"name":"Alice","email":"alice@example.com","password":"secret123","organization_name":"Org"}`
 		req := httptest.NewRequest("POST", "/auth/register", strings.NewReader(reqBody))
@@ -100,7 +100,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 				}, sampleProfile, nil
 			},
 		}
-		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validate.New())
 
 		reqBody := `{"email":"alice@example.com","password":"secret123"}`
 		req := httptest.NewRequest("POST", "/auth/login", strings.NewReader(reqBody))
@@ -125,7 +125,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 				return sampleProfile, nil
 			},
 		}
-		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validation.New())
+		h := NewAuthHandler(svc, slog.New(slog.DiscardHandler), validate.New())
 
 		req := httptest.NewRequest("GET", "/auth/profile", nil)
 		claims := auth.Claims{UserID: userID, OrganizationID: orgID, Email: sampleProfile.Email}

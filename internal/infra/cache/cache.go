@@ -8,8 +8,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/masmuss/gokit-starter/internal/config"
 )
 
 // Cache defines the interface for caching operations.
@@ -65,6 +66,33 @@ func NewRedisCache(client *redis.Client, cfg *config.Config) *RedisCache {
 		client: client,
 		prefix: cfg.Cache.Prefix,
 	}
+}
+
+// NullCache is a no-op cache implementation for when Redis is unavailable.
+type NullCache struct{}
+
+// Get always returns nil (cache miss).
+func (n *NullCache) Get(_ context.Context, _ string, _ any) error {
+	return nil
+}
+
+// Set is a no-op.
+func (n *NullCache) Set(_ context.Context, _ string, _ any, _ time.Duration) error {
+	return nil
+}
+
+// Delete is a no-op.
+func (n *NullCache) Delete(_ context.Context, _ string) error {
+	return nil
+}
+
+// NewCache returns an appropriate Cache implementation.
+// If the Redis client is nil, it returns a NullCache.
+func NewCache(client *redis.Client, cfg *config.Config) Cache {
+	if client == nil {
+		return &NullCache{}
+	}
+	return NewRedisCache(client, cfg)
 }
 
 // Get retrieves a value from the cache.

@@ -1,3 +1,4 @@
+// Package handler provides HTTP handlers for cross-cutting concerns.
 package handler
 
 import (
@@ -5,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 )
 
