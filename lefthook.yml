@@ -15,3 +15,14 @@ pre-commit:
 
     tidy:
       run: go mod tidy
+
+pre-push:
+  parallel: true
+  commands:
+    build:
+      glob: "*.go"
+      run: go build ./...
+
+    vet:
+      glob: "*.go"
+      run: go vet ./...
