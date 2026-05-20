@@ -20,7 +20,6 @@ const domainTemplate = `package domain
 // {{.TitleName}} represents the domain entity.
 type {{.TitleName}} struct {
 	ID string ` + "`" + `json:"id"` + "`" + `
-	// Add fields here
 }
 `
 
@@ -28,13 +27,13 @@ const appTemplate = `package app
 
 import (
 	"context"
+
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/domain"
 )
 
 // Repository defines the interface for {{.Name}} data persistence.
 type Repository interface {
-	// Add repository methods here
-	// Example: FindByID(ctx context.Context, id any) (domain.{{.TitleName}}, error)
+	FindByID(ctx context.Context, id any) (domain.{{.TitleName}}, error)
 }
 
 // Service implements the use cases for {{.Name}}.
@@ -44,9 +43,40 @@ type Service struct {
 
 // NewService creates a new {{.Name}} service.
 func NewService(repo Repository) *Service {
-	return &Service{
-		repo: repo,
-	}
+	return &Service{repo: repo}
+}
+`
+
+const handlerTemplate = `package handler
+
+import (
+	"log/slog"
+	"net/http"
+
+	chi "github.com/go-chi/chi/v5"
+
+	"github.com/masmuss/gokit-starter/internal/delivery/response"
+)
+
+// Service defines the interface for {{.Name}} operations.
+type Service interface {
+}
+
+// Handler handles {{.Name}} requests.
+type Handler struct {
+	service Service
+	log     *slog.Logger
+}
+
+// NewHandler creates a new {{.Name}} handler.
+func NewHandler(service Service, log *slog.Logger) *Handler {
+	return &Handler{service: service, log: log}
+}
+
+// RegisterRoutes registers {{.Name}} routes.
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Route("/{{.Name}}", func(r chi.Router) {
+	})
 }
 `
 
@@ -54,6 +84,7 @@ const infraTemplate = `package infra
 
 import (
 	"github.com/masmuss/gokit-starter/internal/database/ent"
+	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 )
 
@@ -64,10 +95,47 @@ type Repository struct {
 
 // NewRepository creates a new {{.Name}} repository.
 func NewRepository(client *ent.Client) *Repository {
-	return &Repository{
-		client: client,
-	}
+	return &Repository{client: client}
 }
+
+// NewRepositoryFromDB creates a Repository from database.DB.
+func NewRepositoryFromDB(db *database.DB) *Repository {
+	return NewRepository(db.Client())
+}
+`
+
+const fxTemplate = `package {{.Name}}
+
+import (
+	chi "github.com/go-chi/chi/v5"
+	"go.uber.org/fx"
+
+	"github.com/masmuss/gokit-starter/internal/delivery"
+	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
+	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/handler"
+	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/infra"
+)
+
+// Module groups {{.Name}} dependencies for Fx.
+var Module = fx.Module("{{.Name}}",
+	fx.Provide(
+		infra.NewRepositoryFromDB,
+		fx.Annotate(func(r *infra.Repository) app.Repository { return r }),
+		app.NewService,
+		fx.Annotate(
+			func(s *app.Service) handler.Service { return s },
+		),
+		handler.NewHandler,
+		fx.Annotate(
+			func(h *handler.Handler) delivery.RouteRegistrar {
+				return delivery.RouteRegistrarFunc(func(r chi.Router) {
+					h.RegisterRoutes(r)
+				})
+			},
+			fx.ResultTags(` + "`" + `group:"routes"` + "`" + `),
+		),
+	),
+)
 `
 
 func toTitle(s string) string {
@@ -96,6 +164,7 @@ func main() {
 	folders := []string{
 		filepath.Join(basePath, "domain"),
 		filepath.Join(basePath, "app"),
+		filepath.Join(basePath, "handler"),
 		filepath.Join(basePath, "infra"),
 	}
 
@@ -109,7 +178,9 @@ func main() {
 	files := map[string]string{
 		filepath.Join(basePath, "domain", "model.go"):     domainTemplate,
 		filepath.Join(basePath, "app", "service.go"):      appTemplate,
+		filepath.Join(basePath, "handler", "handler.go"):  handlerTemplate,
 		filepath.Join(basePath, "infra", "repository.go"): infraTemplate,
+		filepath.Join(basePath, "fx.go"):                  fxTemplate,
 	}
 
 	for path, content := range files {
@@ -139,5 +210,6 @@ func main() {
 	fmt.Println("Next steps:")
 	fmt.Printf("1. Define your schema in internal/database/schema/%s.go\n", moduleName)
 	fmt.Println("2. Run 'task generate'")
-	fmt.Printf("3. Register the new module in internal/app/fx.go\n")
+	fmt.Printf("3. Register the module in internal/app/fx.go:\n")
+	fmt.Printf("   %smodule \"github.com/masmuss/gokit-starter/internal/modules/%s\"\n", moduleName, moduleName)
 }
