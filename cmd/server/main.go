@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/masmuss/gokit-starter/internal/app"
 	"go.uber.org/fx"
+
+	"github.com/masmuss/gokit-starter/internal/app"
 )
 
 // version is injected at build time via -ldflags.

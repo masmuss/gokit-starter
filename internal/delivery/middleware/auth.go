@@ -7,17 +7,17 @@ import (
 	"strings"
 
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	platformauth "github.com/masmuss/gokit-starter/internal/platform/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/auth"
 )
 
 // AuthMiddleware validates bearer tokens and stores claims in the request context.
 type AuthMiddleware struct {
 	log      *slog.Logger
-	verifier platformauth.TokenVerifier
+	verifier auth.TokenVerifier
 }
 
 // NewAuthMiddleware creates a new auth middleware.
-func NewAuthMiddleware(verifier platformauth.TokenVerifier, log *slog.Logger) *AuthMiddleware {
+func NewAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
 		log:      log,
 		verifier: verifier,
@@ -43,7 +43,7 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(platformauth.WithClaims(r.Context(), claims)))
+		next.ServeHTTP(w, r.WithContext(auth.WithClaims(r.Context(), claims)))
 	})
 }
 

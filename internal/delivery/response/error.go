@@ -3,6 +3,8 @@ package response
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/masmuss/gokit-starter/internal/pkg/apperr"
 )
 
 // ErrorEnvelope defines the standard API error response shape.
@@ -29,10 +31,10 @@ func WriteError(w http.ResponseWriter, status int, code, message string, meta an
 	return json.NewEncoder(w).Encode(Fail(code, message, meta))
 }
 
-// WriteAppError sends a JSON error response based on an AppError.
+// WriteAppError sends a JSON error response based on an apperr.Error.
 func WriteAppError(w http.ResponseWriter, err error) error {
-	status := HTTPStatus(err)
-	code := ErrorCode(err)
+	status := apperr.HTTPStatus(err)
+	code := apperr.ErrorCode(err)
 	message := err.Error()
 
 	return WriteError(w, status, code, message, nil)

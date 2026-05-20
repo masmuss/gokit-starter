@@ -8,20 +8,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
-	"github.com/masmuss/gokit-starter/docs"
-	"github.com/masmuss/gokit-starter/internal/config"
-	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	delivery_middleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"github.com/unrolled/secure"
+
+	"github.com/masmuss/gokit-starter/docs"
+	"github.com/masmuss/gokit-starter/internal/config"
+	"github.com/masmuss/gokit-starter/internal/delivery"
 )
 
 // NewRouter builds the HTTP routes and middleware stack.
 func NewRouter(
 	cfg *config.Config,
-	authHandler *handler.AuthHandler,
-	healthHandler *handler.HealthHandler,
-	authMiddleware *delivery_middleware.AuthMiddleware,
+	registrars []delivery.RouteRegistrar,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -54,10 +52,10 @@ func NewRouter(
 		MaxAge:           300,
 	}))
 
-	healthHandler.RegisterRoutes(r)
-	r.Route("/auth", func(r chi.Router) {
-		authHandler.RegisterRoutes(r, authMiddleware)
-	})
+	for _, registrar := range registrars {
+		registrar.RegisterRoutes(r)
+	}
+
 	r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/docs/index.html", http.StatusMovedPermanently)
 	})

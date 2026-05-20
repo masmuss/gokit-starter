@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"entgo.io/ent/dialect"
+
 	"github.com/masmuss/gokit-starter/internal/database/ent"
 	"github.com/masmuss/gokit-starter/internal/database/ent/enttest"
 )

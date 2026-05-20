@@ -8,10 +8,11 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
+
 	"github.com/masmuss/gokit-starter/internal/database/ent"
 	entuser "github.com/masmuss/gokit-starter/internal/database/ent/user"
+	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	"github.com/masmuss/gokit-starter/internal/platform/database"
 )
 
 const (
@@ -85,7 +86,7 @@ func (r *Repository) CreateAccount(
 	}
 
 	if err != nil {
-		return domain.User{}, fmt.Errorf("create organization (collision): %w", err)
+		return domain.User{}, fmt.Errorf("create organization: %w", err)
 	}
 
 	userRecord, err := tx.User.Create().

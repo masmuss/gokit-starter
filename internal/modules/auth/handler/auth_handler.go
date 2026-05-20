@@ -1,19 +1,22 @@
-// Package handler provides HTTP handlers for auth operations.
+// Package handler provides HTTP handlers for the auth module.
 package handler
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+
 	"github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
+	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
-	"github.com/masmuss/gokit-starter/internal/platform/auth"
-	"github.com/masmuss/gokit-starter/internal/platform/validation"
+	"github.com/masmuss/gokit-starter/internal/pkg/apperr"
+	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
 
 // AuthService defines the interface for authentication operations.
@@ -52,24 +55,14 @@ type RegisterRequest struct {
 }
 
 // Register handles user registration.
-//
-//	@Summary		Register a new user
-//	@Description	Register a new user and create an organization
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		RegisterRequest	true	"Registration details"
-//	@Success		201		{object}	response.Envelope
-//	@Failure		400		{object}	response.ErrorEnvelope
-//	@Router			/auth/register [post]
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
-	if err := validation.BindJSON(r, &req); err != nil {
+	if err := validate.BindJSON(r, &req); err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if err := validation.ValidateStruct(h.validator, req); err != nil {
+	if err := validate.Struct(h.validator, req); err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -81,6 +74,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		OrganizationName: req.OrganizationName,
 	})
 	if err != nil {
+		if errors.Is(err, domain.ErrEmailAlreadyUsed) {
+			err = apperr.Conflict("email_taken", err.Error())
+		}
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -101,24 +97,14 @@ type LoginRequest struct {
 }
 
 // Login handles user authentication.
-//
-//	@Summary		User login
-//	@Description	Authenticate user and return JWT token
-//	@Tags			auth
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		LoginRequest	true	"Login credentials"
-//	@Success		200		{object}	response.Envelope
-//	@Failure		401		{object}	response.ErrorEnvelope
-//	@Router			/auth/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
-	if err := validation.BindJSON(r, &req); err != nil {
+	if err := validate.BindJSON(r, &req); err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if err := validation.ValidateStruct(h.validator, req); err != nil {
+	if err := validate.Struct(h.validator, req); err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -128,6 +114,9 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCredentials) {
+			err = apperr.Unauthorized("invalid_credentials", "invalid email or password")
+		}
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -141,24 +130,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Profile handles retrieving the current user's profile.
-//
-//	@Summary		Get current user profile
-//	@Description	Retrieve profile details for the authenticated user
-//	@Tags			auth
-//	@Produce		json
-//	@Security		Bearer
-//	@Success		200	{object}	response.Envelope
-//	@Failure		401	{object}	response.ErrorEnvelope
-//	@Router			/auth/profile [get]
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 	claims, ok := auth.ClaimsFromContext(r.Context())
 	if !ok {
-		_ = response.WriteAppError(w, response.Unauthorized("unauthorized", "unauthorized access"))
+		_ = response.WriteAppError(w, apperr.Unauthorized("unauthorized", "unauthorized access"))
 		return
 	}
 
 	profile, err := h.service.Profile(r.Context(), claims.UserID)
 	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			err = apperr.NotFound("user_not_found", err.Error())
+		}
 		_ = response.WriteAppError(w, err)
 		return
 	}

@@ -1,5 +1,5 @@
-// Package validation provides request validation helpers.
-package validation
+// Package validate provides request validation helpers.
+package validate
 
 import (
 	"encoding/json"
@@ -57,8 +57,8 @@ func BindJSON(r *http.Request, dst any) error {
 	return nil
 }
 
-// ValidateStruct validates a struct with the provided validator.
-func ValidateStruct(v *validator.Validate, value any) error {
+// Struct validates a struct with the provided validator.
+func Struct(v *validator.Validate, value any) error {
 	if err := v.Struct(value); err != nil {
 		var validationErrors validator.ValidationErrors
 		if errors.As(err, &validationErrors) {
