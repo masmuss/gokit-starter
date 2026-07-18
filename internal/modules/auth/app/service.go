@@ -63,6 +63,10 @@ func (s *Service) Login(ctx context.Context, credentials domain.Credentials) (do
 		return domain.Session{}, domain.Profile{}, domain.ErrInvalidCredentials
 	}
 
+	if user.Status != domain.UserStatusActive {
+		return domain.Session{}, domain.Profile{}, domain.ErrAccountInactive
+	}
+
 	token, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email)
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue token: %w", err)
@@ -72,10 +76,14 @@ func (s *Service) Login(ctx context.Context, credentials domain.Credentials) (do
 }
 
 // Profile returns the current user's public profile.
-func (s *Service) Profile(ctx context.Context, userID uuid.UUID) (domain.Profile, error) {
+func (s *Service) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error) {
 	user, err := s.repository.FindByID(ctx, userID)
 	if err != nil {
 		return domain.Profile{}, err
+	}
+
+	if user.Organization.ID != orgID {
+		return domain.Profile{}, domain.ErrUserNotFound
 	}
 
 	return s.profileFromUser(user), nil

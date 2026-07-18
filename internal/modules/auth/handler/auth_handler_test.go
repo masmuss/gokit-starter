@@ -19,7 +19,7 @@ import (
 type mockAuthService struct {
 	registerFn func(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	loginFn    func(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
-	profileFn  func(ctx context.Context, userID uuid.UUID) (domain.Profile, error)
+	profileFn  func(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
 }
 
 func (m *mockAuthService) Register(
@@ -36,8 +36,8 @@ func (m *mockAuthService) Login(
 	return m.loginFn(ctx, credentials)
 }
 
-func (m *mockAuthService) Profile(ctx context.Context, userID uuid.UUID) (domain.Profile, error) {
-	return m.profileFn(ctx, userID)
+func (m *mockAuthService) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error) {
+	return m.profileFn(ctx, userID, orgID)
 }
 
 func TestAuthHandler_Register_Login_Profile(t *testing.T) {
@@ -121,7 +121,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 
 	t.Run("Profile handler", func(t *testing.T) {
 		svc := &mockAuthService{
-			profileFn: func(_ context.Context, _ uuid.UUID) (domain.Profile, error) {
+			profileFn: func(_ context.Context, _, _ uuid.UUID) (domain.Profile, error) {
 				return sampleProfile, nil
 			},
 		}

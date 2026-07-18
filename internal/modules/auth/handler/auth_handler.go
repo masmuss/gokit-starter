@@ -23,7 +23,7 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	Login(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
-	Profile(ctx context.Context, userID uuid.UUID) (domain.Profile, error)
+	Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
 }
 
 // AuthHandler handles authentication requests.
@@ -48,7 +48,7 @@ func NewAuthHandler(
 
 // RegisterRequest defines the input for user registration.
 type RegisterRequest struct {
-	Name             string `json:"name"              validate:"required"`
+	Name             string `json:"name"              validate:"required,min=2,max=128"`
 	Email            string `json:"email"             validate:"required,email"`
 	Password         string `json:"password"          validate:"required,min=8"`
 	OrganizationName string `json:"organization_name" validate:"omitempty,min=3"`
@@ -75,7 +75,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyUsed) {
-			err = apperr.Conflict("email_taken", err.Error())
+			err = apperr.Conflict("registration_failed", "registration failed")
 		}
 		_ = response.WriteAppError(w, err)
 		return
@@ -109,12 +109,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _, err := h.service.Login(r.Context(), domain.Credentials{
+	session, profile, err := h.service.Login(r.Context(), domain.Credentials{
 		Email:    req.Email,
 		Password: req.Password,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidCredentials) {
+		if errors.Is(err, domain.ErrUserNotFound) ||
+			errors.Is(err, domain.ErrInvalidCredentials) ||
+			errors.Is(err, domain.ErrAccountInactive) {
 			err = apperr.Unauthorized("invalid_credentials", "invalid email or password")
 		}
 		_ = response.WriteAppError(w, err)
@@ -124,6 +126,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	_ = response.WriteJSON(w, http.StatusOK, response.Envelope{
 		Message: "authenticated",
 		Data: map[string]any{
+			"user":         profile,
 			"access_token": session.AccessToken,
 		},
 	})
@@ -137,7 +140,7 @@ func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	profile, err := h.service.Profile(r.Context(), claims.UserID)
+	profile, err := h.service.Profile(r.Context(), claims.UserID, claims.OrganizationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			err = apperr.NotFound("user_not_found", err.Error())

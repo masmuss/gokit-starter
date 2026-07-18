@@ -2,6 +2,11 @@ package domain
 
 import "github.com/google/uuid"
 
+// User account status constants.
+const (
+	UserStatusActive = "active"
+)
+
 // User represents a user in the system.
 type User struct {
 	ID           uuid.UUID    `json:"id"`

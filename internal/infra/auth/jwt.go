@@ -30,6 +30,7 @@ type Claims struct {
 	UserID         uuid.UUID
 	OrganizationID uuid.UUID
 	Email          string
+	jti            string
 }
 
 type jwtClaims struct {
@@ -37,6 +38,11 @@ type jwtClaims struct {
 	OrganizationID string `json:"organization_id"`
 	Email          string `json:"email,omitempty"`
 	jwt.RegisteredClaims
+}
+
+// TokenID extracts the JWT ID from claims for token revocation.
+func (c Claims) TokenID() string {
+	return c.jti
 }
 
 // JWTManager signs and verifies JWT access tokens.
@@ -78,6 +84,7 @@ func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, orgID uuid.UUID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   userID.String(),
+			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.ttl)),
 		},
@@ -124,5 +131,6 @@ func (m *JWTManager) Verify(token string) (Claims, error) {
 		UserID:         userID,
 		OrganizationID: orgID,
 		Email:          claims.Email,
+		jti:            claims.ID,
 	}, nil
 }

@@ -114,7 +114,21 @@ func TestService_Register_Login_Profile(t *testing.T) {
 
 		svc := New(repo, hasher, token, 3600)
 
-		_, err := svc.Profile(ctx, uuid.New())
+		_, err := svc.Profile(ctx, uuid.New(), uuid.New())
+		require.ErrorIs(t, err, domain.ErrUserNotFound)
+	})
+
+	// Profile wrong org
+	t.Run("Profile wrong org", func(t *testing.T) {
+		repo := mocks.NewRepositoryMock(t)
+		hasher := mocks.NewPasswordHasherMock(t)
+		token := mocks.NewTokenIssuerMock(t)
+
+		repo.EXPECT().FindByID(mock.Anything, sampleUser.ID).Return(sampleUser, nil)
+
+		svc := New(repo, hasher, token, 3600)
+
+		_, err := svc.Profile(ctx, sampleUser.ID, uuid.New())
 		require.ErrorIs(t, err, domain.ErrUserNotFound)
 	})
 }
