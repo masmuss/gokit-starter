@@ -149,8 +149,9 @@ func provideAuthMiddleware(
 	verifier auth.TokenVerifier,
 	blacklist *auth.TokenBlacklist,
 	log *slog.Logger,
+	audit *audit.Logger,
 ) *deliverymiddleware.AuthMiddleware {
-	return deliverymiddleware.NewAuthMiddleware(verifier, blacklist, log.With("module", "auth"))
+	return deliverymiddleware.NewAuthMiddleware(verifier, blacklist, log.With("module", "auth"), audit)
 }
 
 type docBuilderDeps struct {
