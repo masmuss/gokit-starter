@@ -55,27 +55,12 @@ var Module = fx.Module("app",
 			fx.As(new(auth.TokenVerifier)),
 		),
 		provideAuthExpiresIn,
-		fx.Annotate(
-			provideServiceName,
-			fx.ResultTags(`name:"serviceName"`),
-		),
-		fx.Annotate(
-			provideAppVersion,
-			fx.ResultTags(`name:"appVersion"`),
-		),
-		fx.Annotate(
-			handler.NewHealthHandler,
-			fx.ParamTags(`name:"serviceName"`, `name:"appVersion"`, ``),
-			fx.As(new(delivery.RouteRegistrar)),
-			fx.ResultTags(`group:"routes"`),
-		),
+		provideAppInfo,
+		provideHealthHandler,
 		deliverymiddleware.NewAuthMiddleware,
 		provideDocBuilder,
 		doc.NewHandler,
-		fx.Annotate(
-			NewRouter,
-			fx.ParamTags(``, ``, `group:"routes"`),
-		),
+		provideRouter,
 	),
 	fx.Invoke(RunServer),
 	authmodule.Module,
@@ -89,12 +74,46 @@ func provideAuthExpiresIn(cfg *config.Config) int {
 	return cfg.Auth.JWTTTL * 60
 }
 
-func provideServiceName(cfg *config.Config) string {
-	return cfg.App.Name
+type appInfoOut struct {
+	fx.Out
+	ServiceName string `name:"serviceName"`
+	AppVersion  string `name:"appVersion"`
 }
 
-func provideAppVersion(cfg *config.Config) string {
-	return cfg.App.Version
+func provideAppInfo(cfg *config.Config) appInfoOut {
+	return appInfoOut{
+		ServiceName: cfg.App.Name,
+		AppVersion:  cfg.App.Version,
+	}
+}
+
+type healthHandlerDeps struct {
+	fx.In
+	ServiceName string `name:"serviceName"`
+	AppVersion  string `name:"appVersion"`
+	Log         *slog.Logger
+}
+
+type healthHandlerOut struct {
+	fx.Out
+	Registrar delivery.RouteRegistrar `group:"routes"`
+}
+
+func provideHealthHandler(deps healthHandlerDeps) healthHandlerOut {
+	return healthHandlerOut{
+		Registrar: handler.NewHealthHandler(deps.ServiceName, deps.AppVersion, deps.Log),
+	}
+}
+
+type routerDeps struct {
+	fx.In
+	Config     *config.Config
+	DocHandler *doc.Handler
+	Registrars []delivery.RouteRegistrar `group:"routes"`
+}
+
+func provideRouter(deps routerDeps) http.Handler {
+	return NewRouter(deps.Config, deps.DocHandler, deps.Registrars)
 }
 
 func provideDocBuilder(cfg *config.Config) *doc.Builder {
