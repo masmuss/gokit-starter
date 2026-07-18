@@ -12,6 +12,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
@@ -62,7 +64,7 @@ var Module = fx.Module("app",
 		doc.NewHandler,
 		provideRouter,
 	),
-	fx.Invoke(RunServer),
+	fx.Invoke(RunServer, registerDBHooks, registerRedisHooks),
 	authmodule.Module,
 )
 
@@ -118,6 +120,25 @@ func provideRouter(deps routerDeps) http.Handler {
 
 func provideDocBuilder(cfg *config.Config) *doc.Builder {
 	return doc.NewBuilder(cfg.App.Name, cfg.App.Version, "Boilerplate API starter with Chi, Ent, and JWT auth.")
+}
+
+func registerDBHooks(lc fx.Lifecycle, db *database.DB) {
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return db.Close()
+		},
+	})
+}
+
+func registerRedisHooks(lc fx.Lifecycle, client *redis.Client) {
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			if client != nil {
+				return client.Close()
+			}
+			return nil
+		},
+	})
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.
