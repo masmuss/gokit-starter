@@ -13,6 +13,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 )
 
 // Module groups auth dependencies for Fx.
@@ -32,6 +33,11 @@ var Module = fx.Module("auth",
 				})
 			},
 			fx.ResultTags(`group:"routes"`),
+		),
+		handler.NewAuthDocRegistrar,
+		fx.Annotate(
+			func(r *handler.AuthDocRegistrar) doc.OperationRegistrar { return r },
+			fx.ResultTags(`group:"docRegistrars"`),
 		),
 	),
 )

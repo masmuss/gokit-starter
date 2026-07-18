@@ -59,6 +59,11 @@ var Module = fx.Module("app",
 		provideAuthExpiresIn,
 		provideAppInfo,
 		provideHealthHandler,
+		handler.NewHealthDocRegistrar,
+		fx.Annotate(
+			func(r *handler.HealthDocRegistrar) doc.OperationRegistrar { return r },
+			fx.ResultTags(`group:"docRegistrars"`),
+		),
 		provideAuthMiddleware,
 		provideDocBuilder,
 		doc.NewHandler,
@@ -122,8 +127,19 @@ func provideAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *deliv
 	return deliverymiddleware.NewAuthMiddleware(verifier, log.With("module", "auth"))
 }
 
-func provideDocBuilder(cfg *config.Config) *doc.Builder {
-	return doc.NewBuilder(cfg.App.Name, cfg.App.Version, "Boilerplate API starter with Chi, Ent, and JWT auth.")
+type docBuilderDeps struct {
+	fx.In
+	Config     *config.Config
+	Registrars []doc.OperationRegistrar `group:"docRegistrars"`
+}
+
+func provideDocBuilder(deps docBuilderDeps) *doc.Builder {
+	return doc.NewBuilder(
+		deps.Config.App.Name,
+		deps.Config.App.Version,
+		"Boilerplate API starter with Chi, Ent, and JWT auth.",
+		deps.Registrars,
+	)
 }
 
 func registerDBHooks(lc fx.Lifecycle, db *database.DB) {
