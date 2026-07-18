@@ -53,10 +53,22 @@ var Module = fx.Module("app",
 			fx.As(new(auth.TokenIssuer)),
 		),
 		fx.Annotate(
+			func(m *auth.JWTManager) auth.RefreshTokenIssuer { return m },
+			fx.As(new(auth.RefreshTokenIssuer)),
+		),
+		fx.Annotate(
 			func(m *auth.JWTManager) auth.TokenVerifier { return m },
 			fx.As(new(auth.TokenVerifier)),
 		),
-		provideAuthExpiresIn,
+		auth.NewTokenBlacklist,
+		fx.Annotate(
+			provideAuthExpiresIn,
+			fx.ResultTags(`name:"authExpiresIn"`),
+		),
+		fx.Annotate(
+			provideRefreshAuthExpiresIn,
+			fx.ResultTags(`name:"authRefreshExpiresIn"`),
+		),
 		provideAppInfo,
 		provideHealthHandler,
 		handler.NewHealthDocRegistrar,
@@ -79,6 +91,10 @@ func provideLogger(cfg *config.Config) *slog.Logger {
 
 func provideAuthExpiresIn(cfg *config.Config) int {
 	return cfg.Auth.JWTTTL * 60
+}
+
+func provideRefreshAuthExpiresIn(cfg *config.Config) int {
+	return cfg.Auth.JWTRefreshTTL * 60
 }
 
 type appInfoOut struct {
@@ -123,8 +139,12 @@ func provideRouter(deps routerDeps) http.Handler {
 	return NewRouter(deps.Config, deps.DocHandler, deps.Registrars)
 }
 
-func provideAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *deliverymiddleware.AuthMiddleware {
-	return deliverymiddleware.NewAuthMiddleware(verifier, log.With("module", "auth"))
+func provideAuthMiddleware(
+	verifier auth.TokenVerifier,
+	blacklist *auth.TokenBlacklist,
+	log *slog.Logger,
+) *deliverymiddleware.AuthMiddleware {
+	return deliverymiddleware.NewAuthMiddleware(verifier, blacklist, log.With("module", "auth"))
 }
 
 type docBuilderDeps struct {

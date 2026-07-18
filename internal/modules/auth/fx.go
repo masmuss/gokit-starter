@@ -10,6 +10,7 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
+	infraauth "github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/infra"
@@ -21,7 +22,7 @@ var Module = fx.Module("auth",
 	fx.Provide(
 		infra.NewRepositoryFromDB,
 		fx.Annotate(func(r *infra.Repository) app.Repository { return r }),
-		app.New,
+		provideAuthService,
 		fx.Annotate(
 			func(s *app.Service) handler.AuthService { return s },
 		),
@@ -42,6 +43,44 @@ var Module = fx.Module("auth",
 	),
 )
 
-func provideAuthHandler(svc handler.AuthService, log *slog.Logger, v *validator.Validate) *handler.AuthHandler {
-	return handler.NewAuthHandler(svc, log.With("module", "auth"), v)
+type authServiceDeps struct {
+	fx.In
+	Repository     app.Repository
+	Hasher         infraauth.PasswordHasher
+	Tokens         infraauth.TokenIssuer
+	RefreshTokens  infraauth.RefreshTokenIssuer
+	TokenVerifier  infraauth.TokenVerifier
+	Blacklist      *infraauth.TokenBlacklist
+	ExpiresIn      int `name:"authExpiresIn"`
+	RefreshExpires int `name:"authRefreshExpiresIn"`
+}
+
+func provideAuthService(deps authServiceDeps) *app.Service {
+	return app.New(
+		deps.Repository,
+		deps.Hasher,
+		deps.Tokens,
+		deps.RefreshTokens,
+		deps.TokenVerifier,
+		deps.Blacklist,
+		deps.ExpiresIn,
+		deps.RefreshExpires,
+	)
+}
+
+type authHandlerDeps struct {
+	fx.In
+	Service       handler.AuthService
+	Log           *slog.Logger
+	Validator     *validator.Validate
+	TokenVerifier infraauth.TokenVerifier
+}
+
+func provideAuthHandler(deps authHandlerDeps) *handler.AuthHandler {
+	return handler.NewAuthHandler(
+		deps.Service,
+		deps.Log.With("module", "auth"),
+		deps.Validator,
+		deps.TokenVerifier,
+	)
 }

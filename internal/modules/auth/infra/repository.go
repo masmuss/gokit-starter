@@ -124,6 +124,20 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User
 	return toDomainUser(userRecord, userRecord.Edges.Organization), nil
 }
 
+// UpdatePassword sets a new password hash for the user.
+func (r *Repository) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	_, err := r.client.User.UpdateOneID(id).SetPasswordHash(passwordHash).Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return domain.ErrUserNotFound
+		}
+
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	return nil
+}
+
 // FindByID returns a user with its organization by ID.
 func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	userRecord, err := r.client.User.Query().

@@ -17,23 +17,41 @@ type Repository interface {
 	CreateAccount(ctx context.Context, input domain.RegisterInput, passwordHash string) (domain.User, error)
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindByID(ctx context.Context, id uuid.UUID) (domain.User, error)
+	UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error
 }
 
 // Service implements auth use cases.
 type Service struct {
-	repository Repository
-	hasher     infraauth.PasswordHasher
-	tokens     infraauth.TokenIssuer
-	expiresIn  int
+	repository     Repository
+	hasher         infraauth.PasswordHasher
+	tokens         infraauth.TokenIssuer
+	refreshTokens  infraauth.RefreshTokenIssuer
+	tokenVerifier  infraauth.TokenVerifier
+	blacklist      *infraauth.TokenBlacklist
+	expiresIn      int
+	refreshExpires int
 }
 
 // New creates a new auth service.
-func New(repository Repository, hasher infraauth.PasswordHasher, tokens infraauth.TokenIssuer, expiresIn int) *Service {
+func New(
+	repository Repository,
+	hasher infraauth.PasswordHasher,
+	tokens infraauth.TokenIssuer,
+	refreshTokens infraauth.RefreshTokenIssuer,
+	tokenVerifier infraauth.TokenVerifier,
+	blacklist *infraauth.TokenBlacklist,
+	expiresIn int,
+	refreshExpires int,
+) *Service {
 	return &Service{
-		repository: repository,
-		hasher:     hasher,
-		tokens:     tokens,
-		expiresIn:  expiresIn,
+		repository:     repository,
+		hasher:         hasher,
+		tokens:         tokens,
+		refreshTokens:  refreshTokens,
+		tokenVerifier:  tokenVerifier,
+		blacklist:      blacklist,
+		expiresIn:      expiresIn,
+		refreshExpires: refreshExpires,
 	}
 }
 
@@ -44,12 +62,7 @@ func (s *Service) Register(ctx context.Context, input domain.RegisterInput) (dom
 		return domain.Session{}, domain.Profile{}, err
 	}
 
-	token, err := s.tokens.Issue(ctx, createdUser.ID, createdUser.Organization.ID, createdUser.Email)
-	if err != nil {
-		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue token: %w", err)
-	}
-
-	return s.session(token), s.profileFromUser(createdUser), nil
+	return s.issueSession(ctx, createdUser)
 }
 
 // Login authenticates a user and returns a session token.
@@ -67,12 +80,7 @@ func (s *Service) Login(ctx context.Context, credentials domain.Credentials) (do
 		return domain.Session{}, domain.Profile{}, domain.ErrAccountInactive
 	}
 
-	token, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email)
-	if err != nil {
-		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue token: %w", err)
-	}
-
-	return s.session(token), s.profileFromUser(user), nil
+	return s.issueSession(ctx, user)
 }
 
 // Profile returns the current user's public profile.
@@ -87,6 +95,98 @@ func (s *Service) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.
 	}
 
 	return s.profileFromUser(user), nil
+}
+
+// Logout revokes both access and refresh tokens.
+func (s *Service) Logout(ctx context.Context, accessClaims, refreshClaims infraauth.Claims) error {
+	if s.blacklist != nil {
+		if err := s.blacklist.Blacklist(ctx, accessClaims.TokenID(), accessClaims.ExpiresAt()); err != nil {
+			return fmt.Errorf("blacklist access token: %w", err)
+		}
+
+		if err := s.blacklist.Blacklist(ctx, refreshClaims.TokenID(), refreshClaims.ExpiresAt()); err != nil {
+			return fmt.Errorf("blacklist refresh token: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ChangePassword updates the password for a user after verifying the current one.
+func (s *Service) ChangePassword(
+	ctx context.Context,
+	userID uuid.UUID,
+	oldPassword, newPassword string,
+) error {
+	user, err := s.repository.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err = s.hasher.Compare(user.PasswordHash, oldPassword); err != nil {
+		return domain.ErrInvalidCredentials
+	}
+
+	passwordHash, err := s.hasher.Hash(newPassword)
+	if err != nil {
+		return fmt.Errorf("hash new password: %w", err)
+	}
+
+	if err = s.repository.UpdatePassword(ctx, userID, passwordHash); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	return nil
+}
+
+// RefreshAccessToken validates a refresh token and issues a new access token.
+func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.Session, error) {
+	claims, err := s.tokenVerifier.Verify(token)
+	if err != nil {
+		return domain.Session{}, fmt.Errorf("%w: %w", domain.ErrInvalidCredentials, err)
+	}
+
+	if !claims.IsRefresh() {
+		return domain.Session{}, domain.ErrInvalidCredentials
+	}
+
+	if s.blacklist != nil {
+		blacklisted, checkErr := s.blacklist.IsBlacklisted(ctx, claims.TokenID())
+		if checkErr != nil {
+			return domain.Session{}, fmt.Errorf("blacklist check: %w", checkErr)
+		}
+
+		if blacklisted {
+			return domain.Session{}, domain.ErrInvalidCredentials
+		}
+	}
+
+	accessToken, err := s.tokens.Issue(ctx, claims.UserID, claims.OrganizationID, claims.Email)
+	if err != nil {
+		return domain.Session{}, fmt.Errorf("issue access token: %w", err)
+	}
+
+	return s.session(accessToken), nil
+}
+
+func (s *Service) issueSession(ctx context.Context, user domain.User) (domain.Session, domain.Profile, error) {
+	accessToken, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email)
+	if err != nil {
+		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue access token: %w", err)
+	}
+
+	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, user.ID, user.Organization.ID, user.Email)
+	if err != nil {
+		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue refresh token: %w", err)
+	}
+
+	return domain.Session{
+		AccessToken:      accessToken,
+		RefreshToken:     refreshToken,
+		TokenType:        "Bearer",
+		ExpiresIn:        s.expiresIn,
+		RefreshExpiresIn: s.refreshExpires,
+	}, s.profileFromUser(user), nil
 }
 
 func (s *Service) createAccount(ctx context.Context, input domain.RegisterInput) (domain.User, error) {
