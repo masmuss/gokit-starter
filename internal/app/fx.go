@@ -22,6 +22,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	authmodule "github.com/masmuss/gokit-starter/internal/modules/auth"
+	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 	"github.com/masmuss/gokit-starter/internal/pkg/eventbus"
 	"github.com/masmuss/gokit-starter/internal/pkg/logger"
@@ -71,6 +72,7 @@ var Module = fx.Module("app",
 		),
 		provideAppInfo,
 		provideHealthHandler,
+		provideAuditLogger,
 		handler.NewHealthDocRegistrar,
 		fx.Annotate(
 			func(r *handler.HealthDocRegistrar) doc.OperationRegistrar { return r },
@@ -87,6 +89,10 @@ var Module = fx.Module("app",
 
 func provideLogger(cfg *config.Config) *slog.Logger {
 	return logger.New(cfg.App.Debug, nil)
+}
+
+func provideAuditLogger(log *slog.Logger) *audit.Logger {
+	return audit.New(log)
 }
 
 func provideAuthExpiresIn(cfg *config.Config) int {
@@ -143,8 +149,9 @@ func provideAuthMiddleware(
 	verifier auth.TokenVerifier,
 	blacklist *auth.TokenBlacklist,
 	log *slog.Logger,
+	audit *audit.Logger,
 ) *deliverymiddleware.AuthMiddleware {
-	return deliverymiddleware.NewAuthMiddleware(verifier, blacklist, log.With("module", "auth"))
+	return deliverymiddleware.NewAuthMiddleware(verifier, blacklist, log.With("module", "auth"), audit)
 }
 
 type docBuilderDeps struct {

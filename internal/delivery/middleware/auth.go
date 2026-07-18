@@ -8,19 +8,27 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
 	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 )
 
 // AuthMiddleware validates bearer tokens and stores claims in the request context.
 type AuthMiddleware struct {
 	log       *slog.Logger
+	audit     *audit.Logger
 	verifier  auth.TokenVerifier
 	blacklist *auth.TokenBlacklist
 }
 
 // NewAuthMiddleware creates a new auth middleware.
-func NewAuthMiddleware(verifier auth.TokenVerifier, blacklist *auth.TokenBlacklist, log *slog.Logger) *AuthMiddleware {
+func NewAuthMiddleware(
+	verifier auth.TokenVerifier,
+	blacklist *auth.TokenBlacklist,
+	log *slog.Logger,
+	audit *audit.Logger,
+) *AuthMiddleware {
 	return &AuthMiddleware{
 		log:       log,
+		audit:     audit,
 		verifier:  verifier,
 		blacklist: blacklist,
 	}
@@ -31,16 +39,14 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := bearerToken(r.Header.Get("Authorization"))
 		if !ok {
+			m.audit.Warn("auth.token_missing", "failed", audit.IP(r))
 			_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "missing bearer token", nil)
 			return
 		}
 
 		claims, err := m.verifier.Verify(token)
 		if err != nil {
-			if m.log != nil {
-				m.log.DebugContext(r.Context(), "invalid bearer token", "error", err)
-			}
-
+			m.audit.Warn("auth.token_invalid", "failed", audit.IP(r))
 			_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "invalid bearer token", nil)
 			return
 		}
@@ -52,6 +58,8 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 			}
 
 			if blacklisted {
+				m.audit.Warn("auth.token_revoked", "failed",
+					audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
 				_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "token revoked", nil)
 				return
 			}
