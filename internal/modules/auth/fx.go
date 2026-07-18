@@ -7,7 +7,6 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	infraauth "github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/infra"
@@ -18,12 +17,6 @@ var Module = fx.Module("auth",
 	fx.Provide(
 		infra.NewRepositoryFromDB,
 		fx.Annotate(func(r *infra.Repository) app.Repository { return r }),
-		fx.Annotate(
-			func(h *infraauth.BcryptHasher) app.PasswordHasher { return h },
-		),
-		fx.Annotate(
-			func(m *infraauth.JWTManager) app.TokenIssuer { return m },
-		),
 		app.New,
 		fx.Annotate(
 			func(s *app.Service) handler.AuthService { return s },

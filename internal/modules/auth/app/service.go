@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	infraauth "github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 )
 
@@ -18,27 +19,16 @@ type Repository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (domain.User, error)
 }
 
-// PasswordHasher hashes and compares passwords.
-type PasswordHasher interface {
-	Hash(password string) (string, error)
-	Compare(hash, password string) error
-}
-
-// TokenIssuer issues access tokens.
-type TokenIssuer interface {
-	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
-}
-
 // Service implements auth use cases.
 type Service struct {
 	repository Repository
-	hasher     PasswordHasher
-	tokens     TokenIssuer
+	hasher     infraauth.PasswordHasher
+	tokens     infraauth.TokenIssuer
 	expiresIn  int
 }
 
 // New creates a new auth service.
-func New(repository Repository, hasher PasswordHasher, tokens TokenIssuer, expiresIn int) *Service {
+func New(repository Repository, hasher infraauth.PasswordHasher, tokens infraauth.TokenIssuer, expiresIn int) *Service {
 	return &Service{
 		repository: repository,
 		hasher:     hasher,

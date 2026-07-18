@@ -42,6 +42,9 @@ var Module = fx.Module("app",
 		),
 		validate.New,
 		auth.NewBcryptHasherFromConfig,
+		fx.Annotate(
+			func(h *auth.BcryptHasher) auth.PasswordHasher { return h },
+		),
 		auth.NewJWTManagerFromConfig,
 		fx.Annotate(
 			func(m *auth.JWTManager) auth.TokenIssuer { return m },
