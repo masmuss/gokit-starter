@@ -59,7 +59,7 @@ var Module = fx.Module("app",
 		provideAuthExpiresIn,
 		provideAppInfo,
 		provideHealthHandler,
-		deliverymiddleware.NewAuthMiddleware,
+		provideAuthMiddleware,
 		provideDocBuilder,
 		doc.NewHandler,
 		provideRouter,
@@ -116,6 +116,10 @@ type routerDeps struct {
 
 func provideRouter(deps routerDeps) http.Handler {
 	return NewRouter(deps.Config, deps.DocHandler, deps.Registrars)
+}
+
+func provideAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *deliverymiddleware.AuthMiddleware {
+	return deliverymiddleware.NewAuthMiddleware(verifier, log.With("module", "auth"))
 }
 
 func provideDocBuilder(cfg *config.Config) *doc.Builder {
