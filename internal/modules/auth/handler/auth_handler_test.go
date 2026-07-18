@@ -13,6 +13,7 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
 
@@ -85,7 +86,13 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		if verifier == nil {
 			verifier = &mockTokenVerifier{}
 		}
-		return NewAuthHandler(svc, slog.New(slog.DiscardHandler), validate.New(), verifier)
+		return NewAuthHandler(
+			svc,
+			slog.New(slog.DiscardHandler),
+			audit.New(slog.New(slog.DiscardHandler)),
+			validate.New(),
+			verifier,
+		)
 	}
 
 	t.Run("Register handler", func(t *testing.T) {

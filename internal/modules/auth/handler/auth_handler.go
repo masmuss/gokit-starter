@@ -16,6 +16,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/pkg/apperr"
+	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
 
@@ -33,6 +34,7 @@ type AuthService interface {
 type AuthHandler struct {
 	service       AuthService
 	log           *slog.Logger
+	audit         *audit.Logger
 	validator     *validator.Validate
 	tokenVerifier auth.TokenVerifier
 }
@@ -41,12 +43,14 @@ type AuthHandler struct {
 func NewAuthHandler(
 	service AuthService,
 	log *slog.Logger,
+	audit *audit.Logger,
 	v *validator.Validate,
 	tokenVerifier auth.TokenVerifier,
 ) *AuthHandler {
 	return &AuthHandler{
 		service:       service,
 		log:           log,
+		audit:         audit,
 		validator:     v,
 		tokenVerifier: tokenVerifier,
 	}
@@ -83,9 +87,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, domain.ErrEmailAlreadyUsed) {
 			err = apperr.Conflict("registration_failed", "registration failed")
 		}
+		h.audit.Warn("user.registered", "failed", audit.Email(req.Email), audit.IP(r))
 		_ = response.WriteAppError(w, err)
 		return
 	}
+
+	h.audit.Info("user.registered", "success",
+		audit.UserID(profile.ID), audit.OrgID(profile.Organization.ID), audit.Email(req.Email), audit.IP(r))
 
 	_ = response.WriteJSON(w, http.StatusCreated, response.Envelope{
 		Message: "registered",
@@ -122,9 +130,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, domain.ErrAccountInactive) {
 			err = apperr.Unauthorized("invalid_credentials", "invalid email or password")
 		}
+		h.audit.Warn("user.login", "failed", audit.Email(req.Email), audit.IP(r))
 		_ = response.WriteAppError(w, err)
 		return
 	}
+
+	h.audit.Info("user.login", "success",
+		audit.UserID(profile.ID), audit.OrgID(profile.Organization.ID), audit.Email(req.Email), audit.IP(r))
 
 	_ = response.WriteJSON(w, http.StatusOK, response.Envelope{
 		Message: "authenticated",
@@ -190,6 +202,9 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.audit.Info("user.logout", "success",
+		audit.UserID(accessClaims.UserID), audit.OrgID(accessClaims.OrganizationID), audit.IP(r))
+
 	_ = response.WriteJSON(w, http.StatusOK, response.Envelope{
 		Message: "logged out",
 	})
@@ -224,9 +239,14 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			err = apperr.BadRequest("invalid_password", "current password is incorrect")
 		}
+		h.audit.Warn("user.password_changed", "failed",
+			audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
 		_ = response.WriteAppError(w, err)
 		return
 	}
+
+	h.audit.Info("user.password_changed", "success",
+		audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
 
 	_ = response.WriteJSON(w, http.StatusOK, response.Envelope{
 		Message: "password changed",
@@ -256,9 +276,12 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			err = apperr.Unauthorized("invalid_refresh_token", "invalid or expired refresh token")
 		}
+		h.audit.Warn("user.token_refreshed", "failed", audit.IP(r))
 		_ = response.WriteAppError(w, err)
 		return
 	}
+
+	h.audit.Info("user.token_refreshed", "success")
 
 	_ = response.WriteJSON(w, http.StatusOK, response.Envelope{
 		Message: "token refreshed",

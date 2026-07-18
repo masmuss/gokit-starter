@@ -14,6 +14,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 )
 
@@ -72,6 +73,7 @@ type authHandlerDeps struct {
 	fx.In
 	Service       handler.AuthService
 	Log           *slog.Logger
+	Audit         *audit.Logger
 	Validator     *validator.Validate
 	TokenVerifier infraauth.TokenVerifier
 }
@@ -80,6 +82,7 @@ func provideAuthHandler(deps authHandlerDeps) *handler.AuthHandler {
 	return handler.NewAuthHandler(
 		deps.Service,
 		deps.Log.With("module", "auth"),
+		deps.Audit,
 		deps.Validator,
 		deps.TokenVerifier,
 	)
