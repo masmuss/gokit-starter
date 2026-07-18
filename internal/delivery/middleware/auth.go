@@ -12,19 +12,21 @@ import (
 
 // AuthMiddleware validates bearer tokens and stores claims in the request context.
 type AuthMiddleware struct {
-	log      *slog.Logger
-	verifier auth.TokenVerifier
+	log       *slog.Logger
+	verifier  auth.TokenVerifier
+	blacklist *auth.TokenBlacklist
 }
 
 // NewAuthMiddleware creates a new auth middleware.
-func NewAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *AuthMiddleware {
+func NewAuthMiddleware(verifier auth.TokenVerifier, blacklist *auth.TokenBlacklist, log *slog.Logger) *AuthMiddleware {
 	return &AuthMiddleware{
-		log:      log,
-		verifier: verifier,
+		log:       log,
+		verifier:  verifier,
+		blacklist: blacklist,
 	}
 }
 
-// Require ensures the request has a valid bearer token.
+// Require ensures the request has a valid, non-revoked bearer token.
 func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, ok := bearerToken(r.Header.Get("Authorization"))
@@ -41,6 +43,18 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 
 			_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "invalid bearer token", nil)
 			return
+		}
+
+		if m.blacklist != nil {
+			blacklisted, checkErr := m.blacklist.IsBlacklisted(r.Context(), claims.TokenID())
+			if checkErr != nil && m.log != nil {
+				m.log.WarnContext(r.Context(), "blacklist check failed", "error", checkErr)
+			}
+
+			if blacklisted {
+				_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "token revoked", nil)
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r.WithContext(auth.WithClaims(r.Context(), claims)))

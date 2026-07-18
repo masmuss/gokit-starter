@@ -15,9 +15,20 @@ import (
 // ErrInvalidToken indicates the token is invalid.
 var ErrInvalidToken = errors.New("invalid token")
 
+// Token type constants.
+const (
+	TokenTypeAccess  = "access"
+	TokenTypeRefresh = "refresh"
+)
+
 // TokenIssuer issues access tokens.
 type TokenIssuer interface {
 	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
+}
+
+// RefreshTokenIssuer issues refresh tokens.
+type RefreshTokenIssuer interface {
+	IssueRefresh(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
 }
 
 // TokenVerifier verifies access tokens.
@@ -30,32 +41,61 @@ type Claims struct {
 	UserID         uuid.UUID
 	OrganizationID uuid.UUID
 	Email          string
+	TokenType      string
+	jti            string
+	expiresAt      time.Time
+}
+
+// TokenID extracts the JWT ID from claims for token revocation.
+func (c Claims) TokenID() string {
+	return c.jti
+}
+
+// ExpiresAt returns the token expiration time.
+func (c Claims) ExpiresAt() time.Time {
+	return c.expiresAt
+}
+
+// IsAccess returns true for access tokens.
+func (c Claims) IsAccess() bool {
+	return c.TokenType == TokenTypeAccess
+}
+
+// IsRefresh returns true for refresh tokens.
+func (c Claims) IsRefresh() bool {
+	return c.TokenType == TokenTypeRefresh
 }
 
 type jwtClaims struct {
 	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
 	Email          string `json:"email,omitempty"`
+	TokenType      string `json:"token_type"`
 	jwt.RegisteredClaims
 }
 
-// JWTManager signs and verifies JWT access tokens.
+// JWTManager signs and verifies JWT tokens.
 type JWTManager struct {
-	issuer string
-	secret []byte
-	ttl    time.Duration
+	issuer     string
+	secret     []byte
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 // NewJWTManager creates a new JWT manager.
-func NewJWTManager(secret, issuer string, ttl time.Duration) *JWTManager {
-	if ttl <= 0 {
-		ttl = time.Hour
+func NewJWTManager(secret, issuer string, accessTTL, refreshTTL time.Duration) *JWTManager {
+	if accessTTL <= 0 {
+		accessTTL = time.Hour
+	}
+	if refreshTTL <= 0 {
+		refreshTTL = 24 * time.Hour * 7
 	}
 
 	return &JWTManager{
-		issuer: issuer,
-		secret: []byte(secret),
-		ttl:    ttl,
+		issuer:     issuer,
+		secret:     []byte(secret),
+		accessTTL:  accessTTL,
+		refreshTTL: refreshTTL,
 	}
 }
 
@@ -65,21 +105,39 @@ func NewJWTManagerFromConfig(cfg *config.Config) *JWTManager {
 		cfg.Auth.JWTSecret,
 		cfg.Auth.JWTIssuer,
 		time.Duration(cfg.Auth.JWTTTL)*time.Minute,
+		time.Duration(cfg.Auth.JWTRefreshTTL)*time.Minute,
 	)
 }
 
 // Issue returns a signed JWT access token.
 func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
+	return m.issue(userID, orgID, email, TokenTypeAccess, m.accessTTL)
+}
+
+// IssueRefresh returns a signed JWT refresh token.
+func (m *JWTManager) IssueRefresh(_ context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
+	return m.issue(userID, orgID, email, TokenTypeRefresh, m.refreshTTL)
+}
+
+func (m *JWTManager) issue(
+	userID uuid.UUID,
+	orgID uuid.UUID,
+	email string,
+	tokenType string,
+	ttl time.Duration,
+) (string, error) {
 	now := time.Now().UTC()
 	claims := jwtClaims{
 		UserID:         userID.String(),
 		OrganizationID: orgID.String(),
 		Email:          email,
+		TokenType:      tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   userID.String(),
+			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(m.ttl)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 		},
 	}
 
@@ -92,7 +150,7 @@ func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, orgID uuid.UUID,
 	return signed, nil
 }
 
-// Verify parses and validates a JWT access token.
+// Verify parses and validates a JWT token.
 func (m *JWTManager) Verify(token string) (Claims, error) {
 	parsed, err := jwt.ParseWithClaims(token, &jwtClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -120,9 +178,17 @@ func (m *JWTManager) Verify(token string) (Claims, error) {
 		return Claims{}, fmt.Errorf("%w: %w", ErrInvalidToken, err)
 	}
 
+	var expiresAt time.Time
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
+	}
+
 	return Claims{
 		UserID:         userID,
 		OrganizationID: orgID,
 		Email:          claims.Email,
+		TokenType:      claims.TokenType,
+		jti:            claims.ID,
+		expiresAt:      expiresAt,
 	}, nil
 }
