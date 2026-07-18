@@ -12,6 +12,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
@@ -42,6 +44,9 @@ var Module = fx.Module("app",
 		),
 		validate.New,
 		auth.NewBcryptHasherFromConfig,
+		fx.Annotate(
+			func(h *auth.BcryptHasher) auth.PasswordHasher { return h },
+		),
 		auth.NewJWTManagerFromConfig,
 		fx.Annotate(
 			func(m *auth.JWTManager) auth.TokenIssuer { return m },
@@ -52,29 +57,19 @@ var Module = fx.Module("app",
 			fx.As(new(auth.TokenVerifier)),
 		),
 		provideAuthExpiresIn,
+		provideAppInfo,
+		provideHealthHandler,
+		handler.NewHealthDocRegistrar,
 		fx.Annotate(
-			provideServiceName,
-			fx.ResultTags(`name:"serviceName"`),
+			func(r *handler.HealthDocRegistrar) doc.OperationRegistrar { return r },
+			fx.ResultTags(`group:"docRegistrars"`),
 		),
-		fx.Annotate(
-			provideAppVersion,
-			fx.ResultTags(`name:"appVersion"`),
-		),
-		fx.Annotate(
-			handler.NewHealthHandler,
-			fx.ParamTags(`name:"serviceName"`, `name:"appVersion"`, ``),
-			fx.As(new(delivery.RouteRegistrar)),
-			fx.ResultTags(`group:"routes"`),
-		),
-		deliverymiddleware.NewAuthMiddleware,
+		provideAuthMiddleware,
 		provideDocBuilder,
 		doc.NewHandler,
-		fx.Annotate(
-			NewRouter,
-			fx.ParamTags(``, ``, `group:"routes"`),
-		),
+		provideRouter,
 	),
-	fx.Invoke(RunServer),
+	fx.Invoke(RunServer, registerDBHooks, registerRedisHooks),
 	authmodule.Module,
 )
 
@@ -86,16 +81,84 @@ func provideAuthExpiresIn(cfg *config.Config) int {
 	return cfg.Auth.JWTTTL * 60
 }
 
-func provideServiceName(cfg *config.Config) string {
-	return cfg.App.Name
+type appInfoOut struct {
+	fx.Out
+	ServiceName string `name:"serviceName"`
+	AppVersion  string `name:"appVersion"`
 }
 
-func provideAppVersion(cfg *config.Config) string {
-	return cfg.App.Version
+func provideAppInfo(cfg *config.Config) appInfoOut {
+	return appInfoOut{
+		ServiceName: cfg.App.Name,
+		AppVersion:  cfg.App.Version,
+	}
 }
 
-func provideDocBuilder(cfg *config.Config) *doc.Builder {
-	return doc.NewBuilder(cfg.App.Name, cfg.App.Version, "Boilerplate API starter with Chi, Ent, and JWT auth.")
+type healthHandlerDeps struct {
+	fx.In
+	ServiceName string `name:"serviceName"`
+	AppVersion  string `name:"appVersion"`
+	Log         *slog.Logger
+}
+
+type healthHandlerOut struct {
+	fx.Out
+	Registrar delivery.RouteRegistrar `group:"routes"`
+}
+
+func provideHealthHandler(deps healthHandlerDeps) healthHandlerOut {
+	return healthHandlerOut{
+		Registrar: handler.NewHealthHandler(deps.ServiceName, deps.AppVersion, deps.Log),
+	}
+}
+
+type routerDeps struct {
+	fx.In
+	Config     *config.Config
+	DocHandler *doc.Handler
+	Registrars []delivery.RouteRegistrar `group:"routes"`
+}
+
+func provideRouter(deps routerDeps) http.Handler {
+	return NewRouter(deps.Config, deps.DocHandler, deps.Registrars)
+}
+
+func provideAuthMiddleware(verifier auth.TokenVerifier, log *slog.Logger) *deliverymiddleware.AuthMiddleware {
+	return deliverymiddleware.NewAuthMiddleware(verifier, log.With("module", "auth"))
+}
+
+type docBuilderDeps struct {
+	fx.In
+	Config     *config.Config
+	Registrars []doc.OperationRegistrar `group:"docRegistrars"`
+}
+
+func provideDocBuilder(deps docBuilderDeps) *doc.Builder {
+	return doc.NewBuilder(
+		deps.Config.App.Name,
+		deps.Config.App.Version,
+		"Boilerplate API starter with Chi, Ent, and JWT auth.",
+		deps.Registrars,
+	)
+}
+
+func registerDBHooks(lc fx.Lifecycle, db *database.DB) {
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return db.Close()
+		},
+	})
+}
+
+func registerRedisHooks(lc fx.Lifecycle, client *redis.Client) {
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			if client != nil {
+				return client.Close()
+			}
+			return nil
+		},
+	})
 }
 
 // RunServer starts the HTTP server using Fx Lifecycle.
