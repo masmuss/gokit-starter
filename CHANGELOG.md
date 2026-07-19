@@ -8,6 +8,20 @@
 - Rename `modules/auth/infra` → `modules/auth/repository`
 - Add `AGENTS.md` — AI agent guide for project conventions
 - Add `docs/architecture.md` and `docs/repository-structure.md`
+
+### Release
+
+- Add GoReleaser config (`.goreleaser.yml`)
+- Add release workflow (git tag → build + changelog + GitHub release)
+- Add `VERSION` file
+- Add `CHANGELOG.md` with release history
+
+---
+
+## 0.1.0
+
+### Architecture
+
 - Module-based layered architecture (`domain` / `app` / `handler` / `repository`)
 - Manual dependency injection — `wire.go` per module, wired in `cmd/server/main.go`
 - Remove `uber-fx`, `entgo.io/ent`, `ariga.io/atlas` dependencies
