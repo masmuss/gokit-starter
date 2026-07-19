@@ -64,9 +64,11 @@ func (r *Repository) CreateAccount(
 				Type: orgType,
 			}
 
-			if createErr := tx.Create(&org).Error; createErr == nil {
+			createErr := tx.Create(&org).Error
+			if createErr == nil {
 				break
-			} else if !isUniqueViolation(createErr) {
+			}
+			if !isUniqueViolation(createErr) {
 				return fmt.Errorf("create organization: %w", createErr)
 			}
 		}

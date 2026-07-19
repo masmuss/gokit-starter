@@ -54,10 +54,10 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 		if m.blacklist != nil {
 			blacklisted, checkErr := m.blacklist.IsBlacklisted(r.Context(), claims.TokenID())
 			if checkErr != nil && m.log != nil {
-				m.log.WarnContext(r.Context(), "blacklist check failed", "error", checkErr)
+				m.log.WarnContext(r.Context(), "blacklist check failed, blocking", "error", checkErr)
 			}
 
-			if blacklisted {
+			if blacklisted || checkErr != nil {
 				m.audit.Warn("auth.token_revoked", "failed",
 					audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
 				_ = response.WriteError(w, http.StatusUnauthorized, "unauthorized", "token revoked", nil)

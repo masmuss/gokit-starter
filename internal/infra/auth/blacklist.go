@@ -31,10 +31,11 @@ func (b *TokenBlacklist) Blacklist(ctx context.Context, jti string, expiresAt ti
 }
 
 // IsBlacklisted checks whether a token has been revoked.
+// Returns true on error (fail-closed) to prevent revoked tokens from passing.
 func (b *TokenBlacklist) IsBlacklisted(ctx context.Context, jti string) (bool, error) {
 	var val string
 	if err := b.cache.Get(ctx, blacklistKey(jti), &val); err != nil {
-		return false, nil
+		return true, err
 	}
 
 	return val != "", nil

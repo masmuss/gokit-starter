@@ -32,10 +32,16 @@ func WriteError(w http.ResponseWriter, status int, code, message string, meta an
 }
 
 // WriteAppError sends a JSON error response based on an apperr.Error.
+// Non-apperr errors are returned as generic internal errors to avoid
+// leaking details to the client.
 func WriteAppError(w http.ResponseWriter, err error) error {
 	status := apperr.HTTPStatus(err)
 	code := apperr.ErrorCode(err)
 	message := err.Error()
+
+	if code == "internal_error" {
+		message = "internal server error"
+	}
 
 	return WriteError(w, status, code, message, nil)
 }

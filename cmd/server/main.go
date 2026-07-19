@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
@@ -131,12 +131,11 @@ func buildRouter(
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(httprate.LimitByIP(100, 1*time.Minute))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders: []string{"Link"},
+		MaxAge:         300,
 	}))
 
 	for _, registrar := range registrars {
@@ -165,24 +164,30 @@ func runServer(
 		IdleTimeout:       60 * time.Second,
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
 		ln, listenErr := net.Listen("tcp", srv.Addr)
 		if listenErr != nil {
-			log.ErrorContext(ctx, "failed to listen", "error", listenErr)
-			os.Exit(1)
+			serverErr <- fmt.Errorf("failed to listen: %w", listenErr)
+			return
 		}
 
 		log.InfoContext(ctx, "server started", "addr", srv.Addr)
 
 		if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
-			log.ErrorContext(context.Background(), "server error", "error", serveErr)
-			os.Exit(1)
+			serverErr <- fmt.Errorf("server error: %w", serveErr)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+
+	select {
+	case sig := <-quit:
+		log.InfoContext(ctx, "received signal", "signal", sig)
+	case err := <-serverErr:
+		log.ErrorContext(ctx, "server startup failed", "error", err)
+	}
 
 	log.InfoContext(ctx, "server stopping")
 

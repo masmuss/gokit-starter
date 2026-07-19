@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 
@@ -125,9 +125,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrUserNotFound) ||
+		isAuthFailure := errors.Is(err, domain.ErrUserNotFound) ||
 			errors.Is(err, domain.ErrInvalidCredentials) ||
-			errors.Is(err, domain.ErrAccountInactive) {
+			errors.Is(err, domain.ErrAccountInactive)
+		if isAuthFailure {
 			err = apperr.Unauthorized("invalid_credentials", "invalid email or password")
 		}
 		h.audit.Warn("user.login", "failed", audit.Email(req.Email), audit.IP(r))
