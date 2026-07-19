@@ -115,3 +115,12 @@ Then:
 ---
 
 _Designed for developers who want clean, readable, production-ready Go APIs._
+
+## Release
+
+```bash
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push origin v0.2.0
+```
+
+GitHub Actions + [GoReleaser](https://goreleaser.com/) builds binaries, generates changelog, and creates a GitHub release. Binary artifacts: `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`.
