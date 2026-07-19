@@ -5,9 +5,8 @@ package mocks
 import (
 	context "context"
 
-	mock "github.com/stretchr/testify/mock"
-
 	domain "github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	mock "github.com/stretchr/testify/mock"
 
 	uuid "github.com/google/uuid"
 )
@@ -193,6 +192,54 @@ func (_c *RepositoryMock_FindByID_Call) Return(_a0 domain.User, _a1 error) *Repo
 }
 
 func (_c *RepositoryMock_FindByID_Call) RunAndReturn(run func(context.Context, uuid.UUID) (domain.User, error)) *RepositoryMock_FindByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdatePassword provides a mock function with given fields: ctx, id, passwordHash
+func (_m *RepositoryMock) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	ret := _m.Called(ctx, id, passwordHash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePassword")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string) error); ok {
+		r0 = rf(ctx, id, passwordHash)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// RepositoryMock_UpdatePassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdatePassword'
+type RepositoryMock_UpdatePassword_Call struct {
+	*mock.Call
+}
+
+// UpdatePassword is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id uuid.UUID
+//   - passwordHash string
+func (_e *RepositoryMock_Expecter) UpdatePassword(ctx interface{}, id interface{}, passwordHash interface{}) *RepositoryMock_UpdatePassword_Call {
+	return &RepositoryMock_UpdatePassword_Call{Call: _e.mock.On("UpdatePassword", ctx, id, passwordHash)}
+}
+
+func (_c *RepositoryMock_UpdatePassword_Call) Run(run func(ctx context.Context, id uuid.UUID, passwordHash string)) *RepositoryMock_UpdatePassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *RepositoryMock_UpdatePassword_Call) Return(_a0 error) *RepositoryMock_UpdatePassword_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *RepositoryMock_UpdatePassword_Call) RunAndReturn(run func(context.Context, uuid.UUID, string) error) *RepositoryMock_UpdatePassword_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -57,9 +57,10 @@ type BcryptConfig struct {
 
 // AuthConfig holds authentication configuration.
 type AuthConfig struct {
-	JWTSecret string `mapstructure:"jwt_secret" validate:"required,min=32"`
-	JWTIssuer string `mapstructure:"jwt_issuer" validate:"required"`
-	JWTTTL    int    `mapstructure:"jwt_ttl"    validate:"required,gt=0"`
+	JWTSecret     string `mapstructure:"jwt_secret"      validate:"required,min=32"`
+	JWTIssuer     string `mapstructure:"jwt_issuer"      validate:"required"`
+	JWTTTL        int    `mapstructure:"jwt_ttl"         validate:"required,gt=0"`
+	JWTRefreshTTL int    `mapstructure:"jwt_refresh_ttl" validate:"required,gt=0"`
 }
 
 // SessionConfig holds session configuration.
@@ -131,6 +132,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("auth.jwt_secret", "change-me-at-least-32-chars-long-!!!")
 	v.SetDefault("auth.jwt_issuer", "gokit-starter")
 	v.SetDefault("auth.jwt_ttl", 60)
+	v.SetDefault("auth.jwt_refresh_ttl", 10080) // 7 days in minutes
 
 	v.SetDefault("session.driver", "database")
 	v.SetDefault("session.lifetime", 120)
@@ -173,6 +175,7 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("auth.jwt_secret", "AUTH_JWT_SECRET")
 	_ = v.BindEnv("auth.jwt_issuer", "AUTH_JWT_ISSUER")
 	_ = v.BindEnv("auth.jwt_ttl", "AUTH_JWT_TTL")
+	_ = v.BindEnv("auth.jwt_refresh_ttl", "AUTH_JWT_REFRESH_TTL")
 
 	_ = v.BindEnv("session.driver", "SESSION_DRIVER")
 	_ = v.BindEnv("session.lifetime", "SESSION_LIFETIME")

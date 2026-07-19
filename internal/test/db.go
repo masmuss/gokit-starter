@@ -4,14 +4,23 @@ package test
 import (
 	"testing"
 
-	"entgo.io/ent/dialect"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 
-	"github.com/masmuss/gokit-starter/internal/database/ent"
-	"github.com/masmuss/gokit-starter/internal/database/ent/enttest"
+	"github.com/masmuss/gokit-starter/internal/database/model"
 )
 
-// NewEntClient opens an in-memory SQLite client for testing.
-func NewEntClient(t *testing.T) *ent.Client {
+// NewGormDB opens an in-memory SQLite database for testing.
+func NewGormDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	return enttest.Open(t, dialect.SQLite, "file:ent?mode=memory&cache=shared&_fk=1")
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open test database: %v", err)
+	}
+
+	if err = db.AutoMigrate(&model.User{}, &model.Organization{}); err != nil {
+		t.Fatalf("failed to migrate test database: %v", err)
+	}
+
+	return db
 }

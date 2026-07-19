@@ -3,25 +3,27 @@ package doc
 
 import (
 	"encoding/json"
-	"net/http"
 	"sync"
 
 	"github.com/swaggest/openapi-go"
 	"github.com/swaggest/openapi-go/openapi31"
-
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
 )
+
+// OperationRegistrar allows modules to register their OpenAPI operations.
+type OperationRegistrar interface {
+	RegisterOperations(r *openapi31.Reflector) error
+}
 
 // Builder builds and serves the OpenAPI specification.
 type Builder struct {
-	once      sync.Once
-	initErr   error
-	reflector *openapi31.Reflector
+	once       sync.Once
+	initErr    error
+	reflector  *openapi31.Reflector
+	registrars []OperationRegistrar
 }
 
-// NewBuilder creates a new spec builder.
-func NewBuilder(title, version, description string) *Builder {
+// NewBuilder creates a new spec builder that collects operations from registrars.
+func NewBuilder(title, version, description string, registrars []OperationRegistrar) *Builder {
 	r := openapi31.NewReflector()
 	spec := r.SpecEns()
 	spec.Info.WithTitle(title)
@@ -37,13 +39,17 @@ func NewBuilder(title, version, description string) *Builder {
 	})
 	spec.WithSecurity(map[string][]string{"Bearer": {}})
 
-	b := &Builder{reflector: r}
-	return b
+	return &Builder{reflector: r, registrars: registrars}
 }
 
 func (b *Builder) init() {
 	b.once.Do(func() {
-		b.initErr = b.buildOperations()
+		for _, registrar := range b.registrars {
+			if err := registrar.RegisterOperations(b.reflector); err != nil {
+				b.initErr = err
+				return
+			}
+		}
 	})
 }
 
@@ -56,99 +62,41 @@ func (b *Builder) SpecJSON() ([]byte, error) {
 	return json.MarshalIndent(b.reflector.Spec, "", "  ")
 }
 
-func (b *Builder) buildOperations() error {
-	ops := []struct {
-		method      string
-		path        string
-		summary     string
-		description string
-		tags        []string
-		req         any
-		resps       []respSpec
-		secured     bool
-	}{
-		{
-			method: http.MethodPost, path: "/auth/register",
-			summary:     "Register a new user",
-			description: "Register a new user and create an organization",
-			tags:        []string{"auth"}, req: handler.RegisterRequest{},
-			resps: []respSpec{
-				{status: http.StatusCreated, structType: response.Envelope{}},
-				{status: http.StatusBadRequest, structType: response.ErrorEnvelope{}},
-				{status: http.StatusConflict, structType: response.ErrorEnvelope{}},
-			},
-		},
-		{
-			method: http.MethodPost, path: "/auth/login",
-			summary:     "User login",
-			description: "Authenticate user and return JWT token",
-			tags:        []string{"auth"}, req: handler.LoginRequest{},
-			resps: []respSpec{
-				{status: http.StatusOK, structType: response.Envelope{}},
-				{status: http.StatusUnauthorized, structType: response.ErrorEnvelope{}},
-			},
-		},
-		{
-			method: http.MethodGet, path: "/auth/profile",
-			summary:     "Get current user profile",
-			description: "Retrieve profile details for the authenticated user",
-			tags:        []string{"auth"}, secured: true,
-			resps: []respSpec{
-				{status: http.StatusOK, structType: response.Envelope{}},
-				{status: http.StatusUnauthorized, structType: response.ErrorEnvelope{}},
-			},
-		},
-		{
-			method: http.MethodGet, path: "/health",
-			summary:     "Health check",
-			description: "Returns the current service status.",
-			tags:        []string{"health"},
-			resps: []respSpec{
-				{status: http.StatusOK, structType: response.Envelope{}},
-			},
-		},
-		{
-			method: http.MethodGet, path: "/version",
-			summary:     "Application version",
-			description: "Returns the build version of the application.",
-			tags:        []string{"health"},
-			resps: []respSpec{
-				{status: http.StatusOK, structType: response.Envelope{}},
-			},
-		},
+// AddOperation is a helper to register a single operation on a reflector.
+func AddOperation(
+	r *openapi31.Reflector,
+	method, path, summary, description string,
+	tags []string,
+	req any,
+	resps []RespSpec,
+	secured bool,
+) error {
+	oc, err := r.NewOperationContext(method, path)
+	if err != nil {
+		return err
 	}
 
-	for _, op := range ops {
-		oc, err := b.reflector.NewOperationContext(op.method, op.path)
-		if err != nil {
-			return err
-		}
+	oc.SetSummary(summary)
+	oc.SetDescription(description)
+	oc.SetTags(tags...)
 
-		oc.SetSummary(op.summary)
-		oc.SetDescription(op.description)
-		oc.SetTags(op.tags...)
-
-		if op.req != nil {
-			oc.AddReqStructure(op.req)
-		}
-
-		for _, r := range op.resps {
-			oc.AddRespStructure(r.structType, openapi.WithHTTPStatus(r.status))
-		}
-
-		if op.secured {
-			oc.AddSecurity("Bearer")
-		}
-
-		if addErr := b.reflector.AddOperation(oc); addErr != nil {
-			return addErr
-		}
+	if req != nil {
+		oc.AddReqStructure(req)
 	}
 
-	return nil
+	for _, resp := range resps {
+		oc.AddRespStructure(resp.StructType, openapi.WithHTTPStatus(resp.Status))
+	}
+
+	if secured {
+		oc.AddSecurity("Bearer")
+	}
+
+	return r.AddOperation(oc)
 }
 
-type respSpec struct {
-	status     int
-	structType any
+// RespSpec describes an API response for the OpenAPI spec.
+type RespSpec struct {
+	Status     int
+	StructType any
 }

@@ -5,7 +5,8 @@ package mocks
 import (
 	context "context"
 
-	uuid "github.com/google/uuid"
+	authtoken "github.com/masmuss/gokit-starter/internal/outbound/authtoken"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -22,9 +23,9 @@ func (_m *TokenIssuerMock) EXPECT() *TokenIssuerMock_Expecter {
 	return &TokenIssuerMock_Expecter{mock: &_m.Mock}
 }
 
-// Issue provides a mock function with given fields: ctx, userID, orgID, email
-func (_m *TokenIssuerMock) Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
-	ret := _m.Called(ctx, userID, orgID, email)
+// Issue provides a mock function with given fields: ctx, subj
+func (_m *TokenIssuerMock) Issue(ctx context.Context, subj authtoken.TokenSubject) (string, error) {
+	ret := _m.Called(ctx, subj)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Issue")
@@ -32,17 +33,17 @@ func (_m *TokenIssuerMock) Issue(ctx context.Context, userID uuid.UUID, orgID uu
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string) (string, error)); ok {
-		return rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(0).(func(context.Context, authtoken.TokenSubject) (string, error)); ok {
+		return rf(ctx, subj)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string) string); ok {
-		r0 = rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(0).(func(context.Context, authtoken.TokenSubject) string); ok {
+		r0 = rf(ctx, subj)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string) error); ok {
-		r1 = rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(1).(func(context.Context, authtoken.TokenSubject) error); ok {
+		r1 = rf(ctx, subj)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -57,16 +58,14 @@ type TokenIssuerMock_Issue_Call struct {
 
 // Issue is a helper method to define mock.On call
 //   - ctx context.Context
-//   - userID uuid.UUID
-//   - orgID uuid.UUID
-//   - email string
-func (_e *TokenIssuerMock_Expecter) Issue(ctx interface{}, userID interface{}, orgID interface{}, email interface{}) *TokenIssuerMock_Issue_Call {
-	return &TokenIssuerMock_Issue_Call{Call: _e.mock.On("Issue", ctx, userID, orgID, email)}
+//   - subj authtoken.TokenSubject
+func (_e *TokenIssuerMock_Expecter) Issue(ctx interface{}, subj interface{}) *TokenIssuerMock_Issue_Call {
+	return &TokenIssuerMock_Issue_Call{Call: _e.mock.On("Issue", ctx, subj)}
 }
 
-func (_c *TokenIssuerMock_Issue_Call) Run(run func(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string)) *TokenIssuerMock_Issue_Call {
+func (_c *TokenIssuerMock_Issue_Call) Run(run func(ctx context.Context, subj authtoken.TokenSubject)) *TokenIssuerMock_Issue_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string))
+		run(args[0].(context.Context), args[1].(authtoken.TokenSubject))
 	})
 	return _c
 }
@@ -76,7 +75,7 @@ func (_c *TokenIssuerMock_Issue_Call) Return(_a0 string, _a1 error) *TokenIssuer
 	return _c
 }
 
-func (_c *TokenIssuerMock_Issue_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string) (string, error)) *TokenIssuerMock_Issue_Call {
+func (_c *TokenIssuerMock_Issue_Call) RunAndReturn(run func(context.Context, authtoken.TokenSubject) (string, error)) *TokenIssuerMock_Issue_Call {
 	_c.Call.Return(run)
 	return _c
 }

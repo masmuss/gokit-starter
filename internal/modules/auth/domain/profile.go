@@ -8,5 +8,6 @@ type Profile struct {
 	Name         string       `json:"name"`
 	Email        string       `json:"email"`
 	Status       string       `json:"status"`
+	Role         string       `json:"role"`
 	Organization Organization `json:"organization"`
 }
