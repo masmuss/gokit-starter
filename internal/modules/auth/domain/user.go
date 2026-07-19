@@ -7,6 +7,12 @@ const (
 	UserStatusActive = "active"
 )
 
+// User role constants.
+const (
+	RoleAdmin  = "admin"
+	RoleMember = "member"
+)
+
 // User represents a user in the system.
 type User struct {
 	ID           uuid.UUID    `json:"id"`
@@ -14,5 +20,6 @@ type User struct {
 	Email        string       `json:"email"`
 	PasswordHash string       `json:"-"`
 	Status       string       `json:"status"`
+	Role         string       `json:"role"`
 	Organization Organization `json:"organization"`
 }

@@ -14,7 +14,7 @@ var (
 		{Name: "create_time", Type: field.TypeTime},
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "name", Type: field.TypeString, Size: 128},
-		{Name: "code", Type: field.TypeString, Size: 16},
+		{Name: "code", Type: field.TypeString, Unique: true, Size: 16},
 		{Name: "type", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString},
 		{Name: "parent_id", Type: field.TypeUUID, Nullable: true},
@@ -43,6 +43,7 @@ var (
 		{Name: "email", Type: field.TypeString, Size: 128},
 		{Name: "password_hash", Type: field.TypeString, Size: 255},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive", "suspended", "banned"}, Default: "active"},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"admin", "member"}, Default: "member"},
 		{Name: "organization_id", Type: field.TypeUUID},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -53,7 +54,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "users_organizations_users",
-				Columns:    []*schema.Column{UsersColumns[8]},
+				Columns:    []*schema.Column{UsersColumns[9]},
 				RefColumns: []*schema.Column{OrganizationsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},

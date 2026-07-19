@@ -161,7 +161,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 		}
 	}
 
-	accessToken, err := s.tokens.Issue(ctx, claims.UserID, claims.OrganizationID, claims.Email)
+	accessToken, err := s.tokens.Issue(ctx, claims.UserID, claims.OrganizationID, claims.Email, claims.Role)
 	if err != nil {
 		return domain.Session{}, fmt.Errorf("issue access token: %w", err)
 	}
@@ -170,12 +170,12 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 }
 
 func (s *Service) issueSession(ctx context.Context, user domain.User) (domain.Session, domain.Profile, error) {
-	accessToken, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email)
+	accessToken, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email, user.Role)
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue access token: %w", err)
 	}
 
-	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, user.ID, user.Organization.ID, user.Email)
+	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, user.ID, user.Organization.ID, user.Email, user.Role)
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue refresh token: %w", err)
 	}
@@ -222,6 +222,7 @@ func (s *Service) profileFromUser(user domain.User) domain.Profile {
 		Name:   user.Name,
 		Email:  user.Email,
 		Status: user.Status,
+		Role:   user.Role,
 		Organization: domain.Organization{
 			ID:     user.Organization.ID,
 			Name:   user.Organization.Name,

@@ -20,6 +20,7 @@ const (
 	organizationTypePersonal  = "personal"
 	organizationStatusActive  = "active"
 	userStatusActive          = "active"
+	roleAdmin                 = "admin"
 	organizationCodeMaxLength = 16
 )
 
@@ -95,6 +96,7 @@ func (r *Repository) CreateAccount(
 		SetEmail(strings.ToLower(input.Email)).
 		SetPasswordHash(passwordHash).
 		SetStatus(userStatusActive).
+		SetRole(roleAdmin).
 		Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
@@ -162,6 +164,7 @@ func toDomainUser(userRecord *ent.User, orgRecord *ent.Organization) domain.User
 		Email:        userRecord.Email,
 		PasswordHash: userRecord.PasswordHash,
 		Status:       string(userRecord.Status),
+		Role:         string(userRecord.Role),
 		Organization: domain.Organization{
 			ID:     orgRecord.ID,
 			Name:   orgRecord.Name,

@@ -23,12 +23,12 @@ const (
 
 // TokenIssuer issues access tokens.
 type TokenIssuer interface {
-	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
+	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email, role string) (string, error)
 }
 
 // RefreshTokenIssuer issues refresh tokens.
 type RefreshTokenIssuer interface {
-	IssueRefresh(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error)
+	IssueRefresh(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email, role string) (string, error)
 }
 
 // TokenVerifier verifies access tokens.
@@ -41,6 +41,7 @@ type Claims struct {
 	UserID         uuid.UUID
 	OrganizationID uuid.UUID
 	Email          string
+	Role           string
 	TokenType      string
 	jti            string
 	expiresAt      time.Time
@@ -70,6 +71,7 @@ type jwtClaims struct {
 	UserID         string `json:"user_id"`
 	OrganizationID string `json:"organization_id"`
 	Email          string `json:"email,omitempty"`
+	Role           string `json:"role"`
 	TokenType      string `json:"token_type"`
 	jwt.RegisteredClaims
 }
@@ -110,19 +112,29 @@ func NewJWTManagerFromConfig(cfg *config.Config) *JWTManager {
 }
 
 // Issue returns a signed JWT access token.
-func (m *JWTManager) Issue(_ context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
-	return m.issue(userID, orgID, email, TokenTypeAccess, m.accessTTL)
+func (m *JWTManager) Issue(
+	_ context.Context,
+	userID uuid.UUID,
+	orgID uuid.UUID,
+	email, role string,
+) (string, error) {
+	return m.issue(userID, orgID, email, role, TokenTypeAccess, m.accessTTL)
 }
 
 // IssueRefresh returns a signed JWT refresh token.
-func (m *JWTManager) IssueRefresh(_ context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
-	return m.issue(userID, orgID, email, TokenTypeRefresh, m.refreshTTL)
+func (m *JWTManager) IssueRefresh(
+	_ context.Context,
+	userID uuid.UUID,
+	orgID uuid.UUID,
+	email, role string,
+) (string, error) {
+	return m.issue(userID, orgID, email, role, TokenTypeRefresh, m.refreshTTL)
 }
 
 func (m *JWTManager) issue(
 	userID uuid.UUID,
 	orgID uuid.UUID,
-	email string,
+	email, role string,
 	tokenType string,
 	ttl time.Duration,
 ) (string, error) {
@@ -131,6 +143,7 @@ func (m *JWTManager) issue(
 		UserID:         userID.String(),
 		OrganizationID: orgID.String(),
 		Email:          email,
+		Role:           role,
 		TokenType:      tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
@@ -187,6 +200,7 @@ func (m *JWTManager) Verify(token string) (Claims, error) {
 		UserID:         userID,
 		OrganizationID: orgID,
 		Email:          claims.Email,
+		Role:           claims.Role,
 		TokenType:      claims.TokenType,
 		jti:            claims.ID,
 		expiresAt:      expiresAt,

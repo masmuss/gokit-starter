@@ -22,9 +22,9 @@ func (_m *TokenIssuerMock) EXPECT() *TokenIssuerMock_Expecter {
 	return &TokenIssuerMock_Expecter{mock: &_m.Mock}
 }
 
-// Issue provides a mock function with given fields: ctx, userID, orgID, email
-func (_m *TokenIssuerMock) Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string) (string, error) {
-	ret := _m.Called(ctx, userID, orgID, email)
+// Issue provides a mock function with given fields: ctx, userID, orgID, email, role
+func (_m *TokenIssuerMock) Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string, role string) (string, error) {
+	ret := _m.Called(ctx, userID, orgID, email, role)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Issue")
@@ -32,17 +32,17 @@ func (_m *TokenIssuerMock) Issue(ctx context.Context, userID uuid.UUID, orgID uu
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string) (string, error)); ok {
-		return rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, string) (string, error)); ok {
+		return rf(ctx, userID, orgID, email, role)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string) string); ok {
-		r0 = rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, string) string); ok {
+		r0 = rf(ctx, userID, orgID, email, role)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string) error); ok {
-		r1 = rf(ctx, userID, orgID, email)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, string) error); ok {
+		r1 = rf(ctx, userID, orgID, email, role)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -60,13 +60,14 @@ type TokenIssuerMock_Issue_Call struct {
 //   - userID uuid.UUID
 //   - orgID uuid.UUID
 //   - email string
-func (_e *TokenIssuerMock_Expecter) Issue(ctx interface{}, userID interface{}, orgID interface{}, email interface{}) *TokenIssuerMock_Issue_Call {
-	return &TokenIssuerMock_Issue_Call{Call: _e.mock.On("Issue", ctx, userID, orgID, email)}
+//   - role string
+func (_e *TokenIssuerMock_Expecter) Issue(ctx interface{}, userID interface{}, orgID interface{}, email interface{}, role interface{}) *TokenIssuerMock_Issue_Call {
+	return &TokenIssuerMock_Issue_Call{Call: _e.mock.On("Issue", ctx, userID, orgID, email, role)}
 }
 
-func (_c *TokenIssuerMock_Issue_Call) Run(run func(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string)) *TokenIssuerMock_Issue_Call {
+func (_c *TokenIssuerMock_Issue_Call) Run(run func(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string, role string)) *TokenIssuerMock_Issue_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string))
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(string))
 	})
 	return _c
 }
@@ -76,7 +77,7 @@ func (_c *TokenIssuerMock_Issue_Call) Return(_a0 string, _a1 error) *TokenIssuer
 	return _c
 }
 
-func (_c *TokenIssuerMock_Issue_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string) (string, error)) *TokenIssuerMock_Issue_Call {
+func (_c *TokenIssuerMock_Issue_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, string) (string, error)) *TokenIssuerMock_Issue_Call {
 	_c.Call.Return(run)
 	return _c
 }
