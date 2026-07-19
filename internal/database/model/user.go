@@ -9,7 +9,7 @@ import (
 
 // User represents a user in the database.
 type User struct {
-	ID             uuid.UUID    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID             uuid.UUID    `gorm:"type:uuid;primaryKey"`
 	OrganizationID uuid.UUID    `gorm:"type:uuid;not null;index"`
 	OutletID       *uuid.UUID   `gorm:"type:uuid"`
 	Name           string       `gorm:"size:128;not null"`
@@ -29,7 +29,7 @@ func (User) TableName() string {
 
 // Organization represents an organization in the database.
 type Organization struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey"`
 	ParentID  *uuid.UUID `gorm:"type:uuid"`
 	Name      string     `gorm:"size:128;not null"`
 	Code      string     `gorm:"size:16;not null;uniqueIndex"`
