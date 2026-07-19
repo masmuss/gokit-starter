@@ -10,7 +10,7 @@ packages:
   github.com/masmuss/gokit-starter/internal/modules/auth/app:
     interfaces:
       Repository:
-  github.com/masmuss/gokit-starter/internal/infra/authtoken:
+  github.com/masmuss/gokit-starter/internal/outbound/authtoken:
     interfaces:
       PasswordHasher:
       TokenIssuer:

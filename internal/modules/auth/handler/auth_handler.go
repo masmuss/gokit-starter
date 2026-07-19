@@ -11,10 +11,10 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
+	"github.com/masmuss/gokit-starter/internal/inbound/middleware"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 	"github.com/masmuss/gokit-starter/internal/pkg/apperr"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"

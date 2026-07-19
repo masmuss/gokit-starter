@@ -1,6 +1,6 @@
 //go:build integration
 
-package infra
+package repository
 
 import (
 	"context"

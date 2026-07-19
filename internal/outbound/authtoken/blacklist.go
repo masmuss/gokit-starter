@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/masmuss/gokit-starter/internal/infra/cache"
+	"github.com/masmuss/gokit-starter/internal/outbound/cache"
 )
 
 const blacklistKeyPrefix = "token_bl"

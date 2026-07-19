@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
+	"github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 )
 
 // RequireRole returns a middleware that checks the authenticated user has one of the given roles.

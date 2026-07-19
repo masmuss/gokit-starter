@@ -5,7 +5,7 @@ package mocks
 import (
 	context "context"
 
-	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
+	authtoken "github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 
 	mock "github.com/stretchr/testify/mock"
 )

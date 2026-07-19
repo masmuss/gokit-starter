@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	authtoken "github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 	"github.com/masmuss/gokit-starter/test/mocks"
 )
 

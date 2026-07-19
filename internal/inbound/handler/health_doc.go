@@ -5,7 +5,7 @@ import (
 
 	"github.com/swaggest/openapi-go/openapi31"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
 	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 )
 
