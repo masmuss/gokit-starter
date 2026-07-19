@@ -210,6 +210,5 @@ func main() {
 	fmt.Println("Next steps:")
 	fmt.Printf("1. Define your schema in internal/database/schema/%s.go\n", moduleName)
 	fmt.Println("2. Run 'task generate'")
-	fmt.Printf("3. Register the module in internal/app/fx.go:\n")
-	fmt.Printf("   %smodule \"github.com/masmuss/gokit-starter/internal/modules/%s\"\n", moduleName, moduleName)
+	fmt.Printf("3. Register the module in cmd/server/main.go (see auth module as example)\n")
 }
