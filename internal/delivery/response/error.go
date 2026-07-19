@@ -14,8 +14,8 @@ type ErrorEnvelope struct {
 	Meta    any    `json:"meta,omitempty"`
 }
 
-// Fail returns a failed response envelope.
-func Fail(code, message string, meta any) ErrorEnvelope {
+// fail returns a failed response envelope.
+func fail(code, message string, meta any) ErrorEnvelope {
 	return ErrorEnvelope{
 		Message: message,
 		Error:   code,
@@ -28,7 +28,7 @@ func WriteError(w http.ResponseWriter, status int, code, message string, meta an
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	return json.NewEncoder(w).Encode(Fail(code, message, meta))
+	return json.NewEncoder(w).Encode(fail(code, message, meta))
 }
 
 // WriteAppError sends a JSON error response based on an apperr.Error.

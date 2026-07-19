@@ -73,7 +73,11 @@ func main() {
 		authMod.DocRegistrar,
 	}, log)
 
-	runServer(ctx, router, cfg.App.Port, redisClient, log)
+	runServer(ctx, serverConfig{
+		Router:      router,
+		Port:        cfg.App.Port,
+		RedisClient: redisClient,
+	}, log)
 }
 
 func loadConfig() *config.Config {
@@ -148,16 +152,16 @@ func buildRouter(
 	return r
 }
 
-func runServer(
-	ctx context.Context,
-	router http.Handler,
-	port int,
-	redisClient *redis.Client,
-	log *slog.Logger,
-) {
+type serverConfig struct {
+	Router      http.Handler
+	Port        int
+	RedisClient *redis.Client
+}
+
+func runServer(ctx context.Context, cfg serverConfig, log *slog.Logger) {
 	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", port),
-		Handler:           router,
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		Handler:           cfg.Router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -198,8 +202,8 @@ func runServer(
 		log.ErrorContext(ctx, "server shutdown error", "error", shutdownErr)
 	}
 
-	if redisClient != nil {
-		if closeErr := redisClient.Close(); closeErr != nil {
+	if cfg.RedisClient != nil {
+		if closeErr := cfg.RedisClient.Close(); closeErr != nil {
 			log.ErrorContext(ctx, "redis close error", "error", closeErr)
 		}
 	}

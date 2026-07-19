@@ -3,6 +3,7 @@ package doc
 import (
 	"log/slog"
 	"net/http"
+	"sync"
 )
 
 const scalarHTML = `<!doctype html>
@@ -18,12 +19,13 @@ const scalarHTML = `<!doctype html>
 </body>
 </html>`
 
-var specJSON []byte
-
 // Handler serves the OpenAPI specification and Scalar UI.
 type Handler struct {
-	builder *Builder
-	log     *slog.Logger
+	builder  *Builder
+	log      *slog.Logger
+	once     sync.Once
+	specJSON []byte
+	specErr  error
 }
 
 // NewHandler creates a new doc handler.
@@ -51,19 +53,19 @@ func (h *Handler) serveUI(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) serveSpec(w http.ResponseWriter, r *http.Request) {
-	if len(specJSON) == 0 {
-		data, err := h.builder.SpecJSON()
-		if err != nil {
-			if h.log != nil {
-				h.log.ErrorContext(r.Context(), "failed to build OpenAPI spec", "error", err)
-			}
-			http.Error(w, "failed to build spec", http.StatusInternalServerError)
-			return
+	h.once.Do(func() {
+		h.specJSON, h.specErr = h.builder.SpecJSON()
+	})
+
+	if h.specErr != nil {
+		if h.log != nil {
+			h.log.ErrorContext(r.Context(), "failed to build OpenAPI spec", "error", h.specErr)
 		}
-		specJSON = data
+		http.Error(w, "failed to build spec", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(specJSON)
+	_, _ = w.Write(h.specJSON)
 }
