@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
+	"github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 )
 

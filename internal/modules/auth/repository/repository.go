@@ -1,5 +1,5 @@
-// Package infra provides auth infrastructure implementations.
-package infra
+// Package repository persists auth entities implementations.
+package repository
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/masmuss/gokit-starter/internal/database/model"
-	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/outbound/database"
 )
 
 const (

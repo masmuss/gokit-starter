@@ -55,7 +55,7 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
 )
 
 // Service defines the interface for {{.Name}} operations.
@@ -85,7 +85,7 @@ const infraTemplate = `package infra
 import (
 	"gorm.io/gorm"
 
-	"github.com/masmuss/gokit-starter/internal/infra/database"
+	"github.com/masmuss/gokit-starter/internal/outbound/database"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 )
 
@@ -110,7 +110,7 @@ const wireTemplate = `package {{.Name}}
 import (
 	chi "github.com/go-chi/chi/v5"
 
-	"github.com/masmuss/gokit-starter/internal/delivery"
+	"github.com/masmuss/gokit-starter/internal/inbound"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/handler"
 )
 

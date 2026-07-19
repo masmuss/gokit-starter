@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	"github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )

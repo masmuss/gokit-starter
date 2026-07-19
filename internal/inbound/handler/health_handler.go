@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/masmuss/gokit-starter/internal/delivery/response"
+	"github.com/masmuss/gokit-starter/internal/inbound/response"
 )
 
 // HealthResponse represents the health endpoint payload.

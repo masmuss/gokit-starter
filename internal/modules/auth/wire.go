@@ -7,14 +7,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 
-	"github.com/masmuss/gokit-starter/internal/delivery"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
-	"github.com/masmuss/gokit-starter/internal/infra/cache"
-	"github.com/masmuss/gokit-starter/internal/infra/database"
+	delivery "github.com/masmuss/gokit-starter/internal/inbound"
+	inboundmw "github.com/masmuss/gokit-starter/internal/inbound/middleware"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/handler"
-	"github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	"github.com/masmuss/gokit-starter/internal/modules/auth/repository"
+	"github.com/masmuss/gokit-starter/internal/outbound/authtoken"
+	"github.com/masmuss/gokit-starter/internal/outbound/cache"
+	"github.com/masmuss/gokit-starter/internal/outbound/database"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/doc"
 )
@@ -37,7 +37,7 @@ type Module struct {
 	Handler      *handler.AuthHandler
 	Registrar    delivery.RouteRegistrar
 	DocRegistrar doc.OperationRegistrar
-	Middleware   *deliverymiddleware.AuthMiddleware
+	Middleware   *inboundmw.AuthMiddleware
 }
 
 // Wire builds the auth module from its dependencies.
@@ -48,7 +48,7 @@ func Wire(deps Dependencies) Module {
 
 	blacklist := authtoken.NewTokenBlacklist(deps.CacheStore)
 
-	repo := infra.NewRepositoryFromDB(deps.DB)
+	repo := repository.NewRepositoryFromDB(deps.DB)
 	var repoInterface app.Repository = repo
 
 	svc := app.New(app.Config{
@@ -72,7 +72,7 @@ func Wire(deps Dependencies) Module {
 		tokenVerifier,
 	)
 
-	authMiddleware := deliverymiddleware.NewAuthMiddleware(
+	authMiddleware := inboundmw.NewAuthMiddleware(
 		tokenVerifier, blacklist, log, deps.Audit,
 	)
 

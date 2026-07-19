@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
+	authtoken "github.com/masmuss/gokit-starter/internal/outbound/authtoken"
 )
 
 // Repository persists and reads auth data.
