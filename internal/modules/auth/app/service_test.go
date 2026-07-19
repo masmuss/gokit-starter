@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/test/mocks"
 )
@@ -56,7 +57,15 @@ func TestService_Register_Login_Profile(t *testing.T) {
 		refreshTokens *mocks.RefreshTokenIssuerMock,
 		verifier *mocks.TokenVerifierMock,
 	) *Service {
-		return New(repo, hasher, tokens, refreshTokens, verifier, nil, 3600, 604800)
+		return New(Config{
+			Repository:     repo,
+			Hasher:         hasher,
+			Tokens:         tokens,
+			RefreshTokens:  refreshTokens,
+			TokenVerifier:  verifier,
+			ExpiresIn:      3600,
+			RefreshExpires: 604800,
+		})
 	}
 
 	// Register success
@@ -70,11 +79,21 @@ func TestService_Register_Login_Profile(t *testing.T) {
 		}), "hashed").Return(sampleUser, nil)
 
 		tokens.EXPECT().
-			Issue(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email, sampleUser.Role).
+			Issue(mock.Anything, authtoken.TokenSubject{
+				UserID:         sampleUser.ID,
+				OrganizationID: sampleUser.Organization.ID,
+				Email:          sampleUser.Email,
+				Role:           sampleUser.Role,
+			}).
 			Return("tok-123", nil)
 
 		refreshTokens.EXPECT().
-			IssueRefresh(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email, sampleUser.Role).
+			IssueRefresh(mock.Anything, authtoken.TokenSubject{
+				UserID:         sampleUser.ID,
+				OrganizationID: sampleUser.Organization.ID,
+				Email:          sampleUser.Email,
+				Role:           sampleUser.Role,
+			}).
 			Return("ref-123", nil)
 
 		svc := newService(repo, hasher, tokens, refreshTokens, verifier)
@@ -98,11 +117,21 @@ func TestService_Register_Login_Profile(t *testing.T) {
 		repo.EXPECT().FindByEmail(mock.Anything, "alice@example.com").Return(sampleUser, nil)
 		hasher.EXPECT().Compare("hashed", "secret").Return(nil)
 		tokens.EXPECT().
-			Issue(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email, sampleUser.Role).
+			Issue(mock.Anything, authtoken.TokenSubject{
+				UserID:         sampleUser.ID,
+				OrganizationID: sampleUser.Organization.ID,
+				Email:          sampleUser.Email,
+				Role:           sampleUser.Role,
+			}).
 			Return("tok-login", nil)
 
 		refreshTokens.EXPECT().
-			IssueRefresh(mock.Anything, sampleUser.ID, sampleUser.Organization.ID, sampleUser.Email, sampleUser.Role).
+			IssueRefresh(mock.Anything, authtoken.TokenSubject{
+				UserID:         sampleUser.ID,
+				OrganizationID: sampleUser.Organization.ID,
+				Email:          sampleUser.Email,
+				Role:           sampleUser.Role,
+			}).
 			Return("ref-login", nil)
 
 		svc := newService(repo, hasher, tokens, refreshTokens, verifier)

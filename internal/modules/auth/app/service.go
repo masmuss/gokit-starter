@@ -32,26 +32,29 @@ type Service struct {
 	refreshExpires int
 }
 
+// Config holds the dependencies for creating a Service.
+type Config struct {
+	Repository     Repository
+	Hasher         authtoken.PasswordHasher
+	Tokens         authtoken.TokenIssuer
+	RefreshTokens  authtoken.RefreshTokenIssuer
+	TokenVerifier  authtoken.TokenVerifier
+	Blacklist      *authtoken.TokenBlacklist
+	ExpiresIn      int
+	RefreshExpires int
+}
+
 // New creates a new auth service.
-func New(
-	repository Repository,
-	hasher authtoken.PasswordHasher,
-	tokens authtoken.TokenIssuer,
-	refreshTokens authtoken.RefreshTokenIssuer,
-	tokenVerifier authtoken.TokenVerifier,
-	blacklist *authtoken.TokenBlacklist,
-	expiresIn int,
-	refreshExpires int,
-) *Service {
+func New(cfg Config) *Service {
 	return &Service{
-		repository:     repository,
-		hasher:         hasher,
-		tokens:         tokens,
-		refreshTokens:  refreshTokens,
-		tokenVerifier:  tokenVerifier,
-		blacklist:      blacklist,
-		expiresIn:      expiresIn,
-		refreshExpires: refreshExpires,
+		repository:     cfg.Repository,
+		hasher:         cfg.Hasher,
+		tokens:         cfg.Tokens,
+		refreshTokens:  cfg.RefreshTokens,
+		tokenVerifier:  cfg.TokenVerifier,
+		blacklist:      cfg.Blacklist,
+		expiresIn:      cfg.ExpiresIn,
+		refreshExpires: cfg.RefreshExpires,
 	}
 }
 
@@ -161,7 +164,12 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 		}
 	}
 
-	accessToken, err := s.tokens.Issue(ctx, claims.UserID, claims.OrganizationID, claims.Email, claims.Role)
+	accessToken, err := s.tokens.Issue(ctx, authtoken.TokenSubject{
+		UserID:         claims.UserID,
+		OrganizationID: claims.OrganizationID,
+		Email:          claims.Email,
+		Role:           claims.Role,
+	})
 	if err != nil {
 		return domain.Session{}, fmt.Errorf("issue access token: %w", err)
 	}
@@ -170,12 +178,22 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 }
 
 func (s *Service) issueSession(ctx context.Context, user domain.User) (domain.Session, domain.Profile, error) {
-	accessToken, err := s.tokens.Issue(ctx, user.ID, user.Organization.ID, user.Email, user.Role)
+	accessToken, err := s.tokens.Issue(ctx, authtoken.TokenSubject{
+		UserID:         user.ID,
+		OrganizationID: user.Organization.ID,
+		Email:          user.Email,
+		Role:           user.Role,
+	})
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue access token: %w", err)
 	}
 
-	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, user.ID, user.Organization.ID, user.Email, user.Role)
+	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, authtoken.TokenSubject{
+		UserID:         user.ID,
+		OrganizationID: user.Organization.ID,
+		Email:          user.Email,
+		Role:           user.Role,
+	})
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue refresh token: %w", err)
 	}

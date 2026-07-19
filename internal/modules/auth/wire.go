@@ -51,16 +51,16 @@ func Wire(deps Dependencies) Module {
 	repo := infra.NewRepositoryFromDB(deps.DB)
 	var repoInterface app.Repository = repo
 
-	svc := app.New(
-		repoInterface,
-		deps.PasswordHasher,
-		tokenIssuer,
-		refreshIssuer,
-		tokenVerifier,
-		blacklist,
-		deps.AccessTTL,
-		deps.RefreshTTL,
-	)
+	svc := app.New(app.Config{
+		Repository:     repoInterface,
+		Hasher:         deps.PasswordHasher,
+		Tokens:         tokenIssuer,
+		RefreshTokens:  refreshIssuer,
+		TokenVerifier:  tokenVerifier,
+		Blacklist:      blacklist,
+		ExpiresIn:      deps.AccessTTL,
+		RefreshExpires: deps.RefreshTTL,
+	})
 
 	log := deps.Log.With("module", "auth")
 

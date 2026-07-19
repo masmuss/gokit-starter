@@ -17,18 +17,26 @@ var ErrInvalidToken = errors.New("invalid token")
 
 // Token type constants.
 const (
-	TokenTypeAccess  = "access"
-	TokenTypeRefresh = "refresh"
+	tokenTypeAccess  = "access"
+	tokenTypeRefresh = "refresh"
 )
+
+// TokenSubject holds the identity to embed in a token.
+type TokenSubject struct {
+	UserID         uuid.UUID
+	OrganizationID uuid.UUID
+	Email          string
+	Role           string
+}
 
 // TokenIssuer issues access tokens.
 type TokenIssuer interface {
-	Issue(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email, role string) (string, error)
+	Issue(ctx context.Context, subj TokenSubject) (string, error)
 }
 
 // RefreshTokenIssuer issues refresh tokens.
 type RefreshTokenIssuer interface {
-	IssueRefresh(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email, role string) (string, error)
+	IssueRefresh(ctx context.Context, subj TokenSubject) (string, error)
 }
 
 // TokenVerifier verifies access tokens.
@@ -59,12 +67,12 @@ func (c Claims) ExpiresAt() time.Time {
 
 // IsAccess returns true for access tokens.
 func (c Claims) IsAccess() bool {
-	return c.TokenType == TokenTypeAccess
+	return c.TokenType == tokenTypeAccess
 }
 
 // IsRefresh returns true for refresh tokens.
 func (c Claims) IsRefresh() bool {
-	return c.TokenType == TokenTypeRefresh
+	return c.TokenType == tokenTypeRefresh
 }
 
 type jwtClaims struct {
@@ -112,42 +120,30 @@ func NewJWTManagerFromConfig(cfg *config.Config) *JWTManager {
 }
 
 // Issue returns a signed JWT access token.
-func (m *JWTManager) Issue(
-	_ context.Context,
-	userID uuid.UUID,
-	orgID uuid.UUID,
-	email, role string,
-) (string, error) {
-	return m.issue(userID, orgID, email, role, TokenTypeAccess, m.accessTTL)
+func (m *JWTManager) Issue(_ context.Context, subj TokenSubject) (string, error) {
+	return m.issue(subj, tokenTypeAccess, m.accessTTL)
 }
 
 // IssueRefresh returns a signed JWT refresh token.
-func (m *JWTManager) IssueRefresh(
-	_ context.Context,
-	userID uuid.UUID,
-	orgID uuid.UUID,
-	email, role string,
-) (string, error) {
-	return m.issue(userID, orgID, email, role, TokenTypeRefresh, m.refreshTTL)
+func (m *JWTManager) IssueRefresh(_ context.Context, subj TokenSubject) (string, error) {
+	return m.issue(subj, tokenTypeRefresh, m.refreshTTL)
 }
 
 func (m *JWTManager) issue(
-	userID uuid.UUID,
-	orgID uuid.UUID,
-	email, role string,
+	subj TokenSubject,
 	tokenType string,
 	ttl time.Duration,
 ) (string, error) {
 	now := time.Now().UTC()
 	claims := jwtClaims{
-		UserID:         userID.String(),
-		OrganizationID: orgID.String(),
-		Email:          email,
-		Role:           role,
+		UserID:         subj.UserID.String(),
+		OrganizationID: subj.OrganizationID.String(),
+		Email:          subj.Email,
+		Role:           subj.Role,
 		TokenType:      tokenType,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
-			Subject:   userID.String(),
+			Subject:   subj.UserID.String(),
 			ID:        uuid.NewString(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),

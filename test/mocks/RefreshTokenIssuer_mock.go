@@ -5,7 +5,8 @@ package mocks
 import (
 	context "context"
 
-	uuid "github.com/google/uuid"
+	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -22,9 +23,9 @@ func (_m *RefreshTokenIssuerMock) EXPECT() *RefreshTokenIssuerMock_Expecter {
 	return &RefreshTokenIssuerMock_Expecter{mock: &_m.Mock}
 }
 
-// IssueRefresh provides a mock function with given fields: ctx, userID, orgID, email, role
-func (_m *RefreshTokenIssuerMock) IssueRefresh(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string, role string) (string, error) {
-	ret := _m.Called(ctx, userID, orgID, email, role)
+// IssueRefresh provides a mock function with given fields: ctx, subj
+func (_m *RefreshTokenIssuerMock) IssueRefresh(ctx context.Context, subj authtoken.TokenSubject) (string, error) {
+	ret := _m.Called(ctx, subj)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IssueRefresh")
@@ -32,17 +33,17 @@ func (_m *RefreshTokenIssuerMock) IssueRefresh(ctx context.Context, userID uuid.
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, string) (string, error)); ok {
-		return rf(ctx, userID, orgID, email, role)
+	if rf, ok := ret.Get(0).(func(context.Context, authtoken.TokenSubject) (string, error)); ok {
+		return rf(ctx, subj)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, string) string); ok {
-		r0 = rf(ctx, userID, orgID, email, role)
+	if rf, ok := ret.Get(0).(func(context.Context, authtoken.TokenSubject) string); ok {
+		r0 = rf(ctx, subj)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, string) error); ok {
-		r1 = rf(ctx, userID, orgID, email, role)
+	if rf, ok := ret.Get(1).(func(context.Context, authtoken.TokenSubject) error); ok {
+		r1 = rf(ctx, subj)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -57,17 +58,14 @@ type RefreshTokenIssuerMock_IssueRefresh_Call struct {
 
 // IssueRefresh is a helper method to define mock.On call
 //   - ctx context.Context
-//   - userID uuid.UUID
-//   - orgID uuid.UUID
-//   - email string
-//   - role string
-func (_e *RefreshTokenIssuerMock_Expecter) IssueRefresh(ctx interface{}, userID interface{}, orgID interface{}, email interface{}, role interface{}) *RefreshTokenIssuerMock_IssueRefresh_Call {
-	return &RefreshTokenIssuerMock_IssueRefresh_Call{Call: _e.mock.On("IssueRefresh", ctx, userID, orgID, email, role)}
+//   - subj authtoken.TokenSubject
+func (_e *RefreshTokenIssuerMock_Expecter) IssueRefresh(ctx interface{}, subj interface{}) *RefreshTokenIssuerMock_IssueRefresh_Call {
+	return &RefreshTokenIssuerMock_IssueRefresh_Call{Call: _e.mock.On("IssueRefresh", ctx, subj)}
 }
 
-func (_c *RefreshTokenIssuerMock_IssueRefresh_Call) Run(run func(ctx context.Context, userID uuid.UUID, orgID uuid.UUID, email string, role string)) *RefreshTokenIssuerMock_IssueRefresh_Call {
+func (_c *RefreshTokenIssuerMock_IssueRefresh_Call) Run(run func(ctx context.Context, subj authtoken.TokenSubject)) *RefreshTokenIssuerMock_IssueRefresh_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(string))
+		run(args[0].(context.Context), args[1].(authtoken.TokenSubject))
 	})
 	return _c
 }
@@ -77,7 +75,7 @@ func (_c *RefreshTokenIssuerMock_IssueRefresh_Call) Return(_a0 string, _a1 error
 	return _c
 }
 
-func (_c *RefreshTokenIssuerMock_IssueRefresh_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, string) (string, error)) *RefreshTokenIssuerMock_IssueRefresh_Call {
+func (_c *RefreshTokenIssuerMock_IssueRefresh_Call) RunAndReturn(run func(context.Context, authtoken.TokenSubject) (string, error)) *RefreshTokenIssuerMock_IssueRefresh_Call {
 	_c.Call.Return(run)
 	return _c
 }
