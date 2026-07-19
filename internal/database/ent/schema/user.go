@@ -46,6 +46,12 @@ func (User) Fields() []ent.Field {
 				"banned",
 			).
 			Default("active"),
+		field.Enum("role").
+			Values(
+				"admin",
+				"member",
+			).
+			Default("member"),
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 	_ "github.com/masmuss/gokit-starter/internal/database/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/migrate"
 )
 

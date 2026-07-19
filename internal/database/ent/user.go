@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
 	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )
@@ -36,6 +35,8 @@ type User struct {
 	PasswordHash string `json:"password_hash,omitempty"`
 	// Status holds the value of the "status" field.
 	Status user.Status `json:"status,omitempty"`
+	// Role holds the value of the "role" field.
+	Role user.Role `json:"role,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges        UserEdges `json:"edges"`
@@ -69,7 +70,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldOutletID:
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
-		case user.FieldName, user.FieldEmail, user.FieldPasswordHash, user.FieldStatus:
+		case user.FieldName, user.FieldEmail, user.FieldPasswordHash, user.FieldStatus, user.FieldRole:
 			values[i] = new(sql.NullString)
 		case user.FieldCreateTime, user.FieldUpdateTime:
 			values[i] = new(sql.NullTime)
@@ -145,6 +146,12 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = user.Status(value.String)
 			}
+		case user.FieldRole:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field role", values[i])
+			} else if value.Valid {
+				_m.Role = user.Role(value.String)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -211,6 +218,9 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("role=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Role))
 	builder.WriteByte(')')
 	return builder.String()
 }

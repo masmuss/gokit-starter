@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
 	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )
@@ -103,6 +102,20 @@ func (_c *UserCreate) SetNillableStatus(v *user.Status) *UserCreate {
 	return _c
 }
 
+// SetRole sets the "role" field.
+func (_c *UserCreate) SetRole(v user.Role) *UserCreate {
+	_c.mutation.SetRole(v)
+	return _c
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (_c *UserCreate) SetNillableRole(v *user.Role) *UserCreate {
+	if v != nil {
+		_c.SetRole(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *UserCreate) SetID(v uuid.UUID) *UserCreate {
 	_c.mutation.SetID(v)
@@ -169,6 +182,10 @@ func (_c *UserCreate) defaults() {
 		v := user.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.Role(); !ok {
+		v := user.DefaultRole
+		_c.mutation.SetRole(v)
+	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := user.DefaultID()
 		_c.mutation.SetID(v)
@@ -216,6 +233,14 @@ func (_c *UserCreate) check() error {
 	if v, ok := _c.mutation.Status(); ok {
 		if err := user.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "User.status": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "User.role"`)}
+	}
+	if v, ok := _c.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
 		}
 	}
 	if len(_c.mutation.OrganizationIDs()) == 0 {
@@ -283,6 +308,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(user.FieldStatus, field.TypeEnum, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
+		_node.Role = value
 	}
 	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

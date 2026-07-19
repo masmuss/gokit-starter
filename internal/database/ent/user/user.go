@@ -32,6 +32,8 @@ const (
 	FieldPasswordHash = "password_hash"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldRole holds the string denoting the role field in the database.
+	FieldRole = "role"
 	// EdgeOrganization holds the string denoting the organization edge name in mutations.
 	EdgeOrganization = "organization"
 	// Table holds the table name of the user in the database.
@@ -56,6 +58,7 @@ var Columns = []string{
 	FieldEmail,
 	FieldPasswordHash,
 	FieldStatus,
+	FieldRole,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -113,6 +116,32 @@ func StatusValidator(s Status) error {
 	}
 }
 
+// Role defines the type for the "role" enum field.
+type Role string
+
+// RoleMember is the default value of the Role enum.
+const DefaultRole = RoleMember
+
+// Role values.
+const (
+	RoleAdmin  Role = "admin"
+	RoleMember Role = "member"
+)
+
+func (r Role) String() string {
+	return string(r)
+}
+
+// RoleValidator is a validator for the "role" field enum values. It is called by the builders before save.
+func RoleValidator(r Role) error {
+	switch r {
+	case RoleAdmin, RoleMember:
+		return nil
+	default:
+		return fmt.Errorf("user: invalid enum value for role field: %q", r)
+	}
+}
+
 // OrderOption defines the ordering options for the User queries.
 type OrderOption func(*sql.Selector)
 
@@ -159,6 +188,11 @@ func ByPasswordHash(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByRole orders the results by the role field.
+func ByRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRole, opts...).ToFunc()
 }
 
 // ByOrganizationField orders the results by organization field.

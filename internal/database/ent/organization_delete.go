@@ -8,7 +8,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
 	"github.com/masmuss/gokit-starter/internal/database/ent/predicate"
 )

@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/organization"
 	"github.com/masmuss/gokit-starter/internal/database/ent/user"
 )

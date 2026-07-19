@@ -8,7 +8,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
-
 	"github.com/masmuss/gokit-starter/internal/database/ent/predicate"
 )
 
@@ -455,6 +454,26 @@ func StatusIn(vs ...Status) predicate.User {
 // StatusNotIn applies the NotIn predicate on the "status" field.
 func StatusNotIn(vs ...Status) predicate.User {
 	return predicate.User(sql.FieldNotIn(FieldStatus, vs...))
+}
+
+// RoleEQ applies the EQ predicate on the "role" field.
+func RoleEQ(v Role) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldRole, v))
+}
+
+// RoleNEQ applies the NEQ predicate on the "role" field.
+func RoleNEQ(v Role) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldRole, v))
+}
+
+// RoleIn applies the In predicate on the "role" field.
+func RoleIn(vs ...Role) predicate.User {
+	return predicate.User(sql.FieldIn(FieldRole, vs...))
+}
+
+// RoleNotIn applies the NotIn predicate on the "role" field.
+func RoleNotIn(vs ...Role) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldRole, vs...))
 }
 
 // HasOrganization applies the HasEdge predicate on the "organization" edge.
