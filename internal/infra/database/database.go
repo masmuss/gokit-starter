@@ -3,49 +3,48 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
-	// Register the PostgreSQL driver.
-	_ "github.com/jackc/pgx/v5/stdlib"
-
-	entsql "entgo.io/ent/dialect/sql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/masmuss/gokit-starter/internal/config"
-	"github.com/masmuss/gokit-starter/internal/database/ent"
+	"github.com/masmuss/gokit-starter/internal/database/model"
 )
 
-// DB wraps ent.Client for database operations.
+// DB wraps gorm.DB for database operations.
 type DB struct {
-	*ent.Client
+	*gorm.DB
 }
 
-// New creates a new PostgreSQL database connection based on configuration.
+// New creates a new PostgreSQL database connection and runs auto-migration.
 func New(_ context.Context, cfg *config.Config) (*DB, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		cfg.Database.Username,
-		cfg.Database.Password,
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		cfg.Database.Host,
 		cfg.Database.Port,
+		cfg.Database.Username,
+		cfg.Database.Password,
 		cfg.Database.Database,
 	)
 
-	stdDB, err := sql.Open("pgx", dsn)
+	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
+		return nil, fmt.Errorf("failed to connect to database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
 	}
 
-	if err = stdDB.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
+	if err = gormDB.AutoMigrate(&model.User{}, &model.Organization{}); err != nil {
+		return nil, fmt.Errorf("auto-migrate failed: %w", err)
 	}
 
-	drv := entsql.OpenDB("postgres", stdDB)
-	client := ent.NewClient(ent.Driver(drv))
-
-	return &DB{Client: client}, nil
+	return &DB{DB: gormDB}, nil
 }
 
 // Close closes the database connection.
 func (db *DB) Close() error {
-	return db.Client.Close()
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }

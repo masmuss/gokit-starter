@@ -3,40 +3,39 @@ package infra
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
-	"github.com/masmuss/gokit-starter/internal/database/ent"
-	entuser "github.com/masmuss/gokit-starter/internal/database/ent/user"
+	"github.com/masmuss/gokit-starter/internal/database/model"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 )
 
 const (
-	organizationTypeCompany   = "company"
-	organizationTypePersonal  = "personal"
-	organizationStatusActive  = "active"
-	userStatusActive          = "active"
-	roleAdmin                 = "admin"
-	organizationCodeMaxLength = 16
+	organizationTypeCompany  = "company"
+	organizationTypePersonal = "personal"
+	roleAdmin                = "admin"
+	organizationCodeMaxLen   = 16
 )
 
-// Repository persists auth entities using Ent.
+// Repository persists auth entities using GORM.
 type Repository struct {
-	client *ent.Client
+	db *gorm.DB
 }
 
 // NewRepository creates a new auth repository.
-func NewRepository(client *ent.Client) *Repository {
-	return &Repository{client: client}
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
 // NewRepositoryFromDB creates a Repository from database.DB.
-func NewRepositoryFromDB(db *database.DB) *Repository {
-	return NewRepository(db.Client)
+func NewRepositoryFromDB(database *database.DB) *Repository {
+	return NewRepository(database.DB)
 }
 
 // CreateAccount creates an organization and its first user in one transaction.
@@ -44,22 +43,7 @@ func (r *Repository) CreateAccount(
 	ctx context.Context,
 	input domain.RegisterInput,
 	passwordHash string,
-) (result domain.User, err error) {
-	tx, err := r.client.Tx(ctx)
-	if err != nil {
-		return domain.User{}, fmt.Errorf("start transaction: %w", err)
-	}
-
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-			return
-		}
-
-		err = tx.Commit()
-	}()
-
-	// Handle personal vs company account
+) (domain.User, error) {
 	orgName := input.OrganizationName
 	orgType := organizationTypeCompany
 	if orgName == "" {
@@ -67,110 +51,112 @@ func (r *Repository) CreateAccount(
 		orgType = organizationTypePersonal
 	}
 
-	// Try creating organization with unique code (retry on collision)
-	var org *ent.Organization
-	for i := 0; i < 3; i++ {
-		org, err = tx.Organization.Create().
-			SetName(orgName).
-			SetCode(organizationCode(orgName)).
-			SetType(orgType).
-			SetStatus(organizationStatusActive).
-			Save(ctx)
+	var result domain.User
 
-		if err == nil {
-			break
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var org model.Organization
+
+		for i := 0; i < 3; i++ {
+			org = model.Organization{
+				ID:   uuid.New(),
+				Name: orgName,
+				Code: organizationCode(orgName),
+				Type: orgType,
+			}
+
+			if createErr := tx.Create(&org).Error; createErr == nil {
+				break
+			} else if !isUniqueViolation(createErr) {
+				return fmt.Errorf("create organization: %w", createErr)
+			}
 		}
 
-		if !ent.IsConstraintError(err) {
-			return domain.User{}, fmt.Errorf("create organization: %w", err)
-		}
-	}
-
-	if err != nil {
-		return domain.User{}, fmt.Errorf("create organization: %w", err)
-	}
-
-	userRecord, err := tx.User.Create().
-		SetOrganizationID(org.ID).
-		SetName(input.Name).
-		SetEmail(strings.ToLower(input.Email)).
-		SetPasswordHash(passwordHash).
-		SetStatus(userStatusActive).
-		SetRole(roleAdmin).
-		Save(ctx)
-	if err != nil {
-		if ent.IsConstraintError(err) {
-			return domain.User{}, domain.ErrEmailAlreadyUsed
+		userRecord := model.User{
+			ID:             uuid.New(),
+			OrganizationID: org.ID,
+			Name:           input.Name,
+			Email:          strings.ToLower(input.Email),
+			PasswordHash:   passwordHash,
+			Role:           roleAdmin,
 		}
 
-		return domain.User{}, fmt.Errorf("create user: %w", err)
-	}
+		if err := tx.Create(&userRecord).Error; err != nil {
+			if isUniqueViolation(err) {
+				return domain.ErrEmailAlreadyUsed
+			}
+			return fmt.Errorf("create user: %w", err)
+		}
 
-	return toDomainUser(userRecord, org), nil
+		userRecord.Organization = org
+		result = toDomainUser(&userRecord)
+		return nil
+	})
+
+	return result, err
 }
 
 // FindByEmail returns a user with its organization by email.
 func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
-	userRecord, err := r.client.User.Query().
-		Where(entuser.EmailEQ(strings.ToLower(strings.TrimSpace(email)))).
-		WithOrganization().
-		Only(ctx)
+	var record model.User
+	err := r.db.WithContext(ctx).
+		Preload("Organization").
+		Where("LOWER(email) = ?", strings.ToLower(strings.TrimSpace(email))).
+		First(&record).Error
 	if err != nil {
-		if ent.IsNotFound(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.User{}, domain.ErrUserNotFound
 		}
-
 		return domain.User{}, fmt.Errorf("find user by email: %w", err)
 	}
 
-	return toDomainUser(userRecord, userRecord.Edges.Organization), nil
+	return toDomainUser(&record), nil
+}
+
+// FindByID returns a user with its organization by ID.
+func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
+	var record model.User
+	err := r.db.WithContext(ctx).
+		Preload("Organization").
+		First(&record, "id = ?", id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.User{}, domain.ErrUserNotFound
+		}
+		return domain.User{}, fmt.Errorf("find user by id: %w", err)
+	}
+
+	return toDomainUser(&record), nil
 }
 
 // UpdatePassword sets a new password hash for the user.
 func (r *Repository) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
-	_, err := r.client.User.UpdateOneID(id).SetPasswordHash(passwordHash).Save(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return domain.ErrUserNotFound
-		}
-
-		return fmt.Errorf("update password: %w", err)
+	result := r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ?", id).
+		Update("password_hash", passwordHash)
+	if result.Error != nil {
+		return fmt.Errorf("update password: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrUserNotFound
 	}
 
 	return nil
 }
 
-// FindByID returns a user with its organization by ID.
-func (r *Repository) FindByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	userRecord, err := r.client.User.Query().
-		Where(entuser.IDEQ(id)).
-		WithOrganization().
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return domain.User{}, domain.ErrUserNotFound
-		}
-
-		return domain.User{}, fmt.Errorf("find user by id: %w", err)
-	}
-
-	return toDomainUser(userRecord, userRecord.Edges.Organization), nil
-}
-
-func toDomainUser(userRecord *ent.User, orgRecord *ent.Organization) domain.User {
+func toDomainUser(record *model.User) domain.User {
 	return domain.User{
-		ID:           userRecord.ID,
-		Name:         userRecord.Name,
-		Email:        userRecord.Email,
-		PasswordHash: userRecord.PasswordHash,
-		Status:       string(userRecord.Status),
-		Role:         string(userRecord.Role),
+		ID:           record.ID,
+		Name:         record.Name,
+		Email:        record.Email,
+		PasswordHash: record.PasswordHash,
+		Status:       record.Status,
+		Role:         record.Role,
 		Organization: domain.Organization{
-			ID:     orgRecord.ID,
-			Name:   orgRecord.Name,
-			Code:   orgRecord.Code,
-			Type:   orgRecord.Type,
-			Status: orgRecord.Status,
+			ID:   record.Organization.ID,
+			Name: record.Organization.Name,
+			Code: record.Organization.Code,
+			Type: record.Organization.Type,
 		},
 	}
 }
@@ -181,14 +167,13 @@ func organizationCode(name string) string {
 		base = "org"
 	}
 
-	// Use a longer suffix (8 chars) and better truncation
 	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
-	maxBaseLength := organizationCodeMaxLength - len(suffix) - 1
-	if maxBaseLength < 1 {
-		maxBaseLength = 1
+	maxBase := organizationCodeMaxLen - len(suffix) - 1
+	if maxBase < 1 {
+		maxBase = 1
 	}
-	if len(base) > maxBaseLength {
-		base = base[:maxBaseLength]
+	if len(base) > maxBase {
+		base = base[:maxBase]
 	}
 
 	return fmt.Sprintf("%s-%s", base, suffix)
@@ -207,4 +192,9 @@ func normalizeCode(value string) string {
 			return -1
 		}
 	}, value), "-")
+}
+
+func isUniqueViolation(err error) bool {
+	return strings.Contains(err.Error(), "duplicate key") ||
+		strings.Contains(err.Error(), "UNIQUE constraint")
 }

@@ -83,59 +83,53 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 const infraTemplate = `package infra
 
 import (
-	"github.com/masmuss/gokit-starter/internal/database/ent"
+	"gorm.io/gorm"
+
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 )
 
-// Repository implements app.Repository using Ent.
+// Repository implements app.Repository using GORM.
 type Repository struct {
-	client *ent.Client
+	db *gorm.DB
 }
 
 // NewRepository creates a new {{.Name}} repository.
-func NewRepository(client *ent.Client) *Repository {
-	return &Repository{client: client}
+func NewRepository(db *gorm.DB) *Repository {
+	return &Repository{db: db}
 }
 
 // NewRepositoryFromDB creates a Repository from database.DB.
-func NewRepositoryFromDB(db *database.DB) *Repository {
-	return NewRepository(db.Client())
+func NewRepositoryFromDB(database *database.DB) *Repository {
+	return NewRepository(database.DB)
 }
 `
 
-const fxTemplate = `package {{.Name}}
+const wireTemplate = `package {{.Name}}
 
 import (
 	chi "github.com/go-chi/chi/v5"
-	"go.uber.org/fx"
 
 	"github.com/masmuss/gokit-starter/internal/delivery"
-	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/handler"
-	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/infra"
 )
 
-// Module groups {{.Name}} dependencies for Fx.
-var Module = fx.Module("{{.Name}}",
-	fx.Provide(
-		infra.NewRepositoryFromDB,
-		fx.Annotate(func(r *infra.Repository) app.Repository { return r }),
-		app.NewService,
-		fx.Annotate(
-			func(s *app.Service) handler.Service { return s },
-		),
-		handler.NewHandler,
-		fx.Annotate(
-			func(h *handler.Handler) delivery.RouteRegistrar {
-				return delivery.RouteRegistrarFunc(func(r chi.Router) {
-					h.RegisterRoutes(r)
-				})
-			},
-			fx.ResultTags(` + "`" + `group:"routes"` + "`" + `),
-		),
-	),
-)
+// Module exposes the {{.Name}} module's public outputs.
+type Module struct {
+	Handler   *handler.Handler
+	Registrar delivery.RouteRegistrar
+}
+
+// Wire builds the {{.Name}} module from its dependencies.
+func Wire() Module {
+	h := handler.NewHandler(nil, nil) // TODO: inject real dependencies
+	return Module{
+		Handler: h,
+		Registrar: delivery.RouteRegistrarFunc(func(r chi.Router) {
+			h.RegisterRoutes(r)
+		}),
+	}
+}
 `
 
 func toTitle(s string) string {
@@ -180,7 +174,7 @@ func main() {
 		filepath.Join(basePath, "app", "service.go"):      appTemplate,
 		filepath.Join(basePath, "handler", "handler.go"):  handlerTemplate,
 		filepath.Join(basePath, "infra", "repository.go"): infraTemplate,
-		filepath.Join(basePath, "fx.go"):                  fxTemplate,
+		filepath.Join(basePath, "wire.go"):                wireTemplate,
 	}
 
 	for path, content := range files {
@@ -208,7 +202,7 @@ func main() {
 
 	fmt.Printf("\nModule '%s' scaffolded successfully!\n", moduleName)
 	fmt.Println("Next steps:")
-	fmt.Printf("1. Define your schema in internal/database/schema/%s.go\n", moduleName)
-	fmt.Println("2. Run 'task generate'")
-	fmt.Printf("3. Register the module in cmd/server/main.go (see auth module as example)\n")
+	fmt.Printf("1. Define your model in internal/database/model/%s.go\n", moduleName)
+	fmt.Println("2. Add model to AutoMigrate in internal/infra/database/database.go")
+	fmt.Printf("3. Call {{.Name}}.Wire() in cmd/server/main.go\n")
 }
