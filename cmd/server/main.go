@@ -23,7 +23,7 @@ import (
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	authmodule "github.com/masmuss/gokit-starter/internal/modules/auth"
@@ -50,13 +50,13 @@ func main() {
 
 	redisClient, cacheStore := openCache(cfg, log)
 
-	jwtMgr := auth.NewJWTManagerFromConfig(cfg)
-	hasher := auth.NewBcryptHasherFromConfig(cfg)
+	jwtMgr := authtoken.NewJWTManagerFromConfig(cfg)
+	hasher := authtoken.NewBcryptHasherFromConfig(cfg)
 
 	authMod := authmodule.Wire(authmodule.Dependencies{
 		DB:             db,
 		CacheStore:     cacheStore,
-		PasswordHasher: auth.PasswordHasher(hasher),
+		PasswordHasher: authtoken.PasswordHasher(hasher),
 		JWTManager:     jwtMgr,
 		Log:            log,
 		Audit:          auditLog,

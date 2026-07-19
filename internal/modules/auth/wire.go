@@ -9,7 +9,7 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
-	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/app"
@@ -23,8 +23,8 @@ import (
 type Dependencies struct {
 	DB             *database.DB
 	CacheStore     cache.Cache
-	PasswordHasher auth.PasswordHasher
-	JWTManager     *auth.JWTManager
+	PasswordHasher authtoken.PasswordHasher
+	JWTManager     *authtoken.JWTManager
 	Log            *slog.Logger
 	Audit          *audit.Logger
 	Validator      *validator.Validate
@@ -42,11 +42,11 @@ type Module struct {
 
 // Wire builds the auth module from its dependencies.
 func Wire(deps Dependencies) Module {
-	tokenVerifier := auth.TokenVerifier(deps.JWTManager)
-	tokenIssuer := auth.TokenIssuer(deps.JWTManager)
-	refreshIssuer := auth.RefreshTokenIssuer(deps.JWTManager)
+	tokenVerifier := authtoken.TokenVerifier(deps.JWTManager)
+	tokenIssuer := authtoken.TokenIssuer(deps.JWTManager)
+	refreshIssuer := authtoken.RefreshTokenIssuer(deps.JWTManager)
 
-	blacklist := auth.NewTokenBlacklist(deps.CacheStore)
+	blacklist := authtoken.NewTokenBlacklist(deps.CacheStore)
 
 	repo := infra.NewRepositoryFromDB(deps.DB)
 	var repoInterface app.Repository = repo

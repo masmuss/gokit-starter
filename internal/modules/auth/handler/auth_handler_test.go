@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
@@ -21,7 +21,7 @@ type mockAuthService struct {
 	registerFn       func(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	loginFn          func(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
 	profileFn        func(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
-	logoutFn         func(ctx context.Context, accessClaims, refreshClaims auth.Claims) error
+	logoutFn         func(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error
 	changePasswordFn func(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	refreshTokenFn   func(ctx context.Context, token string) (domain.Session, error)
 }
@@ -44,7 +44,7 @@ func (m *mockAuthService) Profile(ctx context.Context, userID, orgID uuid.UUID) 
 	return m.profileFn(ctx, userID, orgID)
 }
 
-func (m *mockAuthService) Logout(ctx context.Context, accessClaims, refreshClaims auth.Claims) error {
+func (m *mockAuthService) Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error {
 	return m.logoutFn(ctx, accessClaims, refreshClaims)
 }
 
@@ -57,10 +57,10 @@ func (m *mockAuthService) RefreshAccessToken(ctx context.Context, token string) 
 }
 
 type mockTokenVerifier struct {
-	verifyFn func(token string) (auth.Claims, error)
+	verifyFn func(token string) (authtoken.Claims, error)
 }
 
-func (m *mockTokenVerifier) Verify(token string) (auth.Claims, error) {
+func (m *mockTokenVerifier) Verify(token string) (authtoken.Claims, error) {
 	return m.verifyFn(token)
 }
 
@@ -82,7 +82,7 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		},
 	}
 
-	newHandler := func(svc *mockAuthService, verifier auth.TokenVerifier) *AuthHandler {
+	newHandler := func(svc *mockAuthService, verifier authtoken.TokenVerifier) *AuthHandler {
 		if verifier == nil {
 			verifier = &mockTokenVerifier{}
 		}
@@ -210,8 +210,8 @@ func TestAuthHandler_Register_Login_Profile(t *testing.T) {
 		h := newHandler(svc, nil)
 
 		req := httptest.NewRequest("GET", "/auth/profile", nil)
-		authClaims := auth.Claims{UserID: userID, OrganizationID: orgID, Email: sampleProfile.Email}
-		req = req.WithContext(auth.WithClaims(req.Context(), authClaims))
+		authClaims := authtoken.Claims{UserID: userID, OrganizationID: orgID, Email: sampleProfile.Email}
+		req = req.WithContext(authtoken.WithClaims(req.Context(), authClaims))
 		rr := httptest.NewRecorder()
 
 		h.Profile(rr, req)

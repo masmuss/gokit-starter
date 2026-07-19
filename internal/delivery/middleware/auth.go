@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 )
 
@@ -15,14 +15,14 @@ import (
 type AuthMiddleware struct {
 	log       *slog.Logger
 	audit     *audit.Logger
-	verifier  auth.TokenVerifier
-	blacklist *auth.TokenBlacklist
+	verifier  authtoken.TokenVerifier
+	blacklist *authtoken.TokenBlacklist
 }
 
 // NewAuthMiddleware creates a new auth middleware.
 func NewAuthMiddleware(
-	verifier auth.TokenVerifier,
-	blacklist *auth.TokenBlacklist,
+	verifier authtoken.TokenVerifier,
+	blacklist *authtoken.TokenBlacklist,
 	log *slog.Logger,
 	audit *audit.Logger,
 ) *AuthMiddleware {
@@ -65,7 +65,7 @@ func (m *AuthMiddleware) Require(next http.Handler) http.Handler {
 			}
 		}
 
-		next.ServeHTTP(w, r.WithContext(auth.WithClaims(r.Context(), claims)))
+		next.ServeHTTP(w, r.WithContext(authtoken.WithClaims(r.Context(), claims)))
 	})
 }
 

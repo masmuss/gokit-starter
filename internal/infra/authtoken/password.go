@@ -1,5 +1,5 @@
-// Package auth provides reusable authentication primitives.
-package auth
+// Package authtoken provides reusable authentication primitives.
+package authtoken
 
 import (
 	"golang.org/x/crypto/bcrypt"

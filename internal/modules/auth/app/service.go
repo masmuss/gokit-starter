@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	infraauth "github.com/masmuss/gokit-starter/internal/infra/auth"
+	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 )
 
@@ -23,11 +23,11 @@ type Repository interface {
 // Service implements auth use cases.
 type Service struct {
 	repository     Repository
-	hasher         infraauth.PasswordHasher
-	tokens         infraauth.TokenIssuer
-	refreshTokens  infraauth.RefreshTokenIssuer
-	tokenVerifier  infraauth.TokenVerifier
-	blacklist      *infraauth.TokenBlacklist
+	hasher         authtoken.PasswordHasher
+	tokens         authtoken.TokenIssuer
+	refreshTokens  authtoken.RefreshTokenIssuer
+	tokenVerifier  authtoken.TokenVerifier
+	blacklist      *authtoken.TokenBlacklist
 	expiresIn      int
 	refreshExpires int
 }
@@ -35,11 +35,11 @@ type Service struct {
 // New creates a new auth service.
 func New(
 	repository Repository,
-	hasher infraauth.PasswordHasher,
-	tokens infraauth.TokenIssuer,
-	refreshTokens infraauth.RefreshTokenIssuer,
-	tokenVerifier infraauth.TokenVerifier,
-	blacklist *infraauth.TokenBlacklist,
+	hasher authtoken.PasswordHasher,
+	tokens authtoken.TokenIssuer,
+	refreshTokens authtoken.RefreshTokenIssuer,
+	tokenVerifier authtoken.TokenVerifier,
+	blacklist *authtoken.TokenBlacklist,
 	expiresIn int,
 	refreshExpires int,
 ) *Service {
@@ -98,7 +98,7 @@ func (s *Service) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.
 }
 
 // Logout revokes both access and refresh tokens.
-func (s *Service) Logout(ctx context.Context, accessClaims, refreshClaims infraauth.Claims) error {
+func (s *Service) Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error {
 	if s.blacklist != nil {
 		if err := s.blacklist.Blacklist(ctx, accessClaims.TokenID(), accessClaims.ExpiresAt()); err != nil {
 			return fmt.Errorf("blacklist access token: %w", err)

@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	auth "github.com/masmuss/gokit-starter/internal/infra/auth"
+	authtoken "github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -21,22 +21,22 @@ func (_m *TokenVerifierMock) EXPECT() *TokenVerifierMock_Expecter {
 }
 
 // Verify provides a mock function with given fields: token
-func (_m *TokenVerifierMock) Verify(token string) (auth.Claims, error) {
+func (_m *TokenVerifierMock) Verify(token string) (authtoken.Claims, error) {
 	ret := _m.Called(token)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Verify")
 	}
 
-	var r0 auth.Claims
+	var r0 authtoken.Claims
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (auth.Claims, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) (authtoken.Claims, error)); ok {
 		return rf(token)
 	}
-	if rf, ok := ret.Get(0).(func(string) auth.Claims); ok {
+	if rf, ok := ret.Get(0).(func(string) authtoken.Claims); ok {
 		r0 = rf(token)
 	} else {
-		r0 = ret.Get(0).(auth.Claims)
+		r0 = ret.Get(0).(authtoken.Claims)
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
@@ -66,12 +66,12 @@ func (_c *TokenVerifierMock_Verify_Call) Run(run func(token string)) *TokenVerif
 	return _c
 }
 
-func (_c *TokenVerifierMock_Verify_Call) Return(_a0 auth.Claims, _a1 error) *TokenVerifierMock_Verify_Call {
+func (_c *TokenVerifierMock_Verify_Call) Return(_a0 authtoken.Claims, _a1 error) *TokenVerifierMock_Verify_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *TokenVerifierMock_Verify_Call) RunAndReturn(run func(string) (auth.Claims, error)) *TokenVerifierMock_Verify_Call {
+func (_c *TokenVerifierMock_Verify_Call) RunAndReturn(run func(string) (authtoken.Claims, error)) *TokenVerifierMock_Verify_Call {
 	_c.Call.Return(run)
 	return _c
 }

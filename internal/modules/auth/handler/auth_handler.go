@@ -13,7 +13,7 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/delivery/response"
-	"github.com/masmuss/gokit-starter/internal/infra/auth"
+	"github.com/masmuss/gokit-starter/internal/infra/authtoken"
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	"github.com/masmuss/gokit-starter/internal/pkg/apperr"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
@@ -25,7 +25,7 @@ type AuthService interface {
 	Register(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	Login(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
 	Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
-	Logout(ctx context.Context, accessClaims, refreshClaims auth.Claims) error
+	Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	RefreshAccessToken(ctx context.Context, token string) (domain.Session, error)
 }
@@ -36,7 +36,7 @@ type AuthHandler struct {
 	log           *slog.Logger
 	audit         *audit.Logger
 	validator     *validator.Validate
-	tokenVerifier auth.TokenVerifier
+	tokenVerifier authtoken.TokenVerifier
 }
 
 // NewAuthHandler creates a new AuthHandler.
@@ -45,7 +45,7 @@ func NewAuthHandler(
 	log *slog.Logger,
 	audit *audit.Logger,
 	v *validator.Validate,
-	tokenVerifier auth.TokenVerifier,
+	tokenVerifier authtoken.TokenVerifier,
 ) *AuthHandler {
 	return &AuthHandler{
 		service:       service,
@@ -147,7 +147,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // Profile handles retrieving the current user's profile.
 func (h *AuthHandler) Profile(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := authtoken.ClaimsFromContext(r.Context())
 	if !ok {
 		_ = response.WriteAppError(w, apperr.Unauthorized("unauthorized", "unauthorized access"))
 		return
@@ -175,7 +175,7 @@ type LogoutRequest struct {
 
 // Logout handles user logout by revoking both tokens.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	accessClaims, ok := auth.ClaimsFromContext(r.Context())
+	accessClaims, ok := authtoken.ClaimsFromContext(r.Context())
 	if !ok {
 		_ = response.WriteAppError(w, apperr.Unauthorized("unauthorized", "unauthorized access"))
 		return
@@ -219,7 +219,7 @@ type ChangePasswordRequest struct {
 
 // ChangePassword handles password change for the authenticated user.
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	claims, ok := auth.ClaimsFromContext(r.Context())
+	claims, ok := authtoken.ClaimsFromContext(r.Context())
 	if !ok {
 		_ = response.WriteAppError(w, apperr.Unauthorized("unauthorized", "unauthorized access"))
 		return
