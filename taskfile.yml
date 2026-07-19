@@ -37,43 +37,12 @@ tasks:
     desc: Build all binaries
     deps: [build:server]
 
-  generate:
-    desc: Regenerate Ent code from schema definitions
-    cmds:
-      - go generate ./internal/database/ent/...
-
   new:module:
     desc: Scaffold a new business module
     cmds:
       - go run scripts/generator/main.go {{.name}}
     vars:
       name: '{{default "mymodule" .name}}'
-
-  db:diff:
-    desc: Generate a new migration file
-    deps: [db:clean]
-    cmds:
-      - go run -mod=mod internal/database/ent/migrate/tool/main.go {{.name}}
-    vars:
-      name: '{{default "migration" .name}}'
-
-  db:clean:
-    desc: Reset the database to a clean state
-    cmds:
-      - docker compose down -v
-      - docker compose up -d
-      - sleep 5
-
-  db:migrate:
-    desc: Apply all pending migrations
-    cmds:
-      - atlas migrate apply --dir "file://database/migrations" --url "postgres://{{.DB_USER}}:{{.DB_PASS}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode=disable"
-    vars:
-      DB_USER: '{{default "gokit_starter" .DB_USER}}'
-      DB_PASS: '{{default "secret" .DB_PASS}}'
-      DB_HOST: '{{default "127.0.0.1" .DB_HOST}}'
-      DB_PORT: '{{default "5432" .DB_PORT}}'
-      DB_NAME: '{{default "gokit_starter" .DB_NAME}}'
 
   docs:generate:
     desc: OpenAPI spec is built programmatically at runtime (no generation needed)

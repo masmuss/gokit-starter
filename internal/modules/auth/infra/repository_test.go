@@ -15,10 +15,8 @@ import (
 )
 
 func TestRepository_CreateAccount(t *testing.T) {
-	client := test.NewEntClient(t)
-	defer client.Close()
-
-	repo := NewRepository(client)
+	db := test.NewGormDB(t)
+	repo := NewRepository(db)
 	ctx := context.Background()
 
 	t.Run("Create Personal Account", func(t *testing.T) {
