@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -16,21 +17,18 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	"github.com/redis/go-redis/v9"
 	"github.com/unrolled/secure"
 
 	"github.com/masmuss/gokit-starter/internal/config"
 	"github.com/masmuss/gokit-starter/internal/delivery"
 	"github.com/masmuss/gokit-starter/internal/delivery/handler"
-	deliverymiddleware "github.com/masmuss/gokit-starter/internal/delivery/middleware"
 	"github.com/masmuss/gokit-starter/internal/infra/auth"
 	"github.com/masmuss/gokit-starter/internal/infra/cache"
 	"github.com/masmuss/gokit-starter/internal/infra/database"
-	modapp "github.com/masmuss/gokit-starter/internal/modules/auth/app"
-	modhandler "github.com/masmuss/gokit-starter/internal/modules/auth/handler"
-	modinfra "github.com/masmuss/gokit-starter/internal/modules/auth/infra"
+	authmodule "github.com/masmuss/gokit-starter/internal/modules/auth"
 	"github.com/masmuss/gokit-starter/internal/pkg/audit"
 	"github.com/masmuss/gokit-starter/internal/pkg/doc"
-	"github.com/masmuss/gokit-starter/internal/pkg/eventbus"
 	"github.com/masmuss/gokit-starter/internal/pkg/logger"
 	"github.com/masmuss/gokit-starter/internal/pkg/validate"
 )
@@ -41,83 +39,73 @@ var version = "dev"
 func main() {
 	os.Setenv("APP_VERSION", version)
 
-	// Config
+	cfg := loadConfig()
+	log := logger.New(cfg.App.Debug, nil)
+	auditLog := audit.New(log)
+
+	ctx := context.Background()
+
+	db := openDatabase(ctx, cfg, log)
+	defer db.Close()
+
+	redisClient, cacheStore := openCache(cfg, log)
+
+	jwtMgr := auth.NewJWTManagerFromConfig(cfg)
+	hasher := auth.NewBcryptHasherFromConfig(cfg)
+
+	authMod := authmodule.Wire(authmodule.Dependencies{
+		DB:             db,
+		CacheStore:     cacheStore,
+		PasswordHasher: auth.PasswordHasher(hasher),
+		JWTManager:     jwtMgr,
+		Log:            log,
+		Audit:          auditLog,
+		Validator:      validate.New(),
+		AccessTTL:      cfg.Auth.JWTTTL * 60,
+		RefreshTTL:     cfg.Auth.JWTRefreshTTL * 60,
+	})
+
+	router := buildRouter(cfg, []delivery.RouteRegistrar{
+		handler.NewHealthHandler(cfg.App.Name, cfg.App.Version, log),
+		authMod.Registrar,
+	}, []doc.OperationRegistrar{
+		handler.NewHealthDocRegistrar(),
+		authMod.DocRegistrar,
+	}, log)
+
+	runServer(ctx, router, cfg.App.Port, redisClient, log)
+}
+
+func loadConfig() *config.Config {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
+	return cfg
+}
 
-	// Logger
-	log := logger.New(cfg.App.Debug, nil)
-	auditLog := audit.New(log)
-
-	// Database
-	ctx := context.Background()
+func openDatabase(ctx context.Context, cfg *config.Config, log *slog.Logger) *database.DB {
 	db, err := database.New(ctx, cfg)
 	if err != nil {
 		log.ErrorContext(ctx, "failed to connect to database", "error", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	return db
+}
 
-	// Redis
-	redisClient := cache.NewRedisClientOptional(cfg, log)
-	cacheStore := cache.NewCache(redisClient, cfg)
+func openCache(cfg *config.Config, log *slog.Logger) (*redis.Client, cache.Cache) {
+	client := cache.NewRedisClientOptional(cfg, log)
+	store := cache.NewCache(client, cfg)
+	return client, store
+}
 
-	// Event Bus
-	bus := eventbus.NewInternalBus()
-	_ = bus // ready for subscribers
-
-	// Validator
-	v := validate.New()
-
-	// Auth Infrastructure
-	hasher := auth.NewBcryptHasherFromConfig(cfg)
-	var passwordHasher auth.PasswordHasher = hasher
-
-	jwtMgr := auth.NewJWTManagerFromConfig(cfg)
-	var tokenIssuer auth.TokenIssuer = jwtMgr
-	var refreshIssuer auth.RefreshTokenIssuer = jwtMgr
-	var tokenVerifier auth.TokenVerifier = jwtMgr
-
-	blacklist := auth.NewTokenBlacklist(cacheStore)
-
-	accessTTL := cfg.Auth.JWTTTL * 60
-	refreshTTL := cfg.Auth.JWTRefreshTTL * 60
-
-	// Auth Module
-	repo := modinfra.NewRepositoryFromDB(db)
-	var authRepo modapp.Repository = repo
-
-	authSvc := modapp.New(
-		authRepo, passwordHasher, tokenIssuer, refreshIssuer,
-		tokenVerifier, blacklist, accessTTL, refreshTTL,
-	)
-	var authService modhandler.AuthService = authSvc
-
-	authHandler := modhandler.NewAuthHandler(
-		authService, log.With("module", "auth"), auditLog, v, tokenVerifier,
-	)
-
-	// Middleware
-	authMiddleware := deliverymiddleware.NewAuthMiddleware(
-		tokenVerifier, blacklist, log.With("module", "auth"), auditLog,
-	)
-
-	// Route Registrars
-	routeRegistrars := []delivery.RouteRegistrar{
-		handler.NewHealthHandler(cfg.App.Name, cfg.App.Version, log),
-		delivery.RouteRegistrarFunc(func(r chi.Router) {
-			authHandler.RegisterRoutes(r, authMiddleware)
-		}),
-	}
-
-	// Doc
-	docRegistrars := []doc.OperationRegistrar{
-		handler.NewHealthDocRegistrar(),
-		modhandler.NewAuthDocRegistrar(),
-	}
+func buildRouter(
+	cfg *config.Config,
+	registrars []delivery.RouteRegistrar,
+	docRegistrars []doc.OperationRegistrar,
+	log *slog.Logger,
+) http.Handler {
 	docBuilder := doc.NewBuilder(
 		cfg.App.Name, cfg.App.Version,
 		"Boilerplate API starter with Chi, Ent, and JWT auth.",
@@ -125,62 +113,6 @@ func main() {
 	)
 	docHandler := doc.NewHandler(docBuilder, log)
 
-	// Router
-	router := buildRouter(cfg, docHandler, routeRegistrars)
-
-	// Server
-	srv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.App.Port),
-		Handler:           router,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
-		IdleTimeout:       60 * time.Second,
-	}
-
-	go func() {
-		ln, listenErr := net.Listen("tcp", srv.Addr)
-		if listenErr != nil {
-			log.ErrorContext(ctx, "failed to listen", "error", listenErr)
-			os.Exit(1)
-		}
-
-		log.InfoContext(ctx, "server started", "addr", srv.Addr)
-
-		if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
-			log.ErrorContext(context.Background(), "server error", "error", serveErr)
-			os.Exit(1)
-		}
-	}()
-
-	// Graceful Shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	log.InfoContext(ctx, "server stopping")
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if shutdownErr := srv.Shutdown(shutdownCtx); shutdownErr != nil {
-		log.ErrorContext(ctx, "server shutdown error", "error", shutdownErr)
-	}
-
-	if redisClient != nil {
-		if closeErr := redisClient.Close(); closeErr != nil {
-			log.ErrorContext(ctx, "redis close error", "error", closeErr)
-		}
-	}
-
-	log.InfoContext(ctx, "server stopped")
-}
-
-func buildRouter(
-	cfg *config.Config,
-	docHandler *doc.Handler,
-	registrars []delivery.RouteRegistrar,
-) http.Handler {
 	r := chi.NewRouter()
 
 	secureMiddleware := secure.New(secure.Options{
@@ -215,4 +147,57 @@ func buildRouter(
 	r.Get("/docs/*", docHandler.ServeHTTP)
 
 	return r
+}
+
+func runServer(
+	ctx context.Context,
+	router http.Handler,
+	port int,
+	redisClient *redis.Client,
+	log *slog.Logger,
+) {
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	go func() {
+		ln, listenErr := net.Listen("tcp", srv.Addr)
+		if listenErr != nil {
+			log.ErrorContext(ctx, "failed to listen", "error", listenErr)
+			os.Exit(1)
+		}
+
+		log.InfoContext(ctx, "server started", "addr", srv.Addr)
+
+		if serveErr := srv.Serve(ln); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			log.ErrorContext(context.Background(), "server error", "error", serveErr)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.InfoContext(ctx, "server stopping")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if shutdownErr := srv.Shutdown(shutdownCtx); shutdownErr != nil {
+		log.ErrorContext(ctx, "server shutdown error", "error", shutdownErr)
+	}
+
+	if redisClient != nil {
+		if closeErr := redisClient.Close(); closeErr != nil {
+			log.ErrorContext(ctx, "redis close error", "error", closeErr)
+		}
+	}
+
+	log.InfoContext(ctx, "server stopped")
 }
