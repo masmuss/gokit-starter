@@ -36,14 +36,19 @@ type Repository interface {
 	FindByID(ctx context.Context, id any) (domain.{{.TitleName}}, error)
 }
 
+// Config holds the dependencies for creating a Service.
+type Config struct {
+	Repo Repository
+}
+
 // Service implements the use cases for {{.Name}}.
 type Service struct {
 	repo Repository
 }
 
-// NewService creates a new {{.Name}} service.
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+// New creates a new {{.Name}} service.
+func New(cfg Config) *Service {
+	return &Service{repo: cfg.Repo}
 }
 `
 
@@ -53,23 +58,23 @@ import (
 	"log/slog"
 	"net/http"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/masmuss/gokit-starter/internal/inbound/response"
 )
 
-// Service defines the interface for {{.Name}} operations.
-type Service interface {
+// AuthService defines the interface for {{.Name}} operations.
+type AuthService interface {
 }
 
 // Handler handles {{.Name}} requests.
 type Handler struct {
-	service Service
+	service AuthService
 	log     *slog.Logger
 }
 
 // NewHandler creates a new {{.Name}} handler.
-func NewHandler(service Service, log *slog.Logger) *Handler {
+func NewHandler(service AuthService, log *slog.Logger) *Handler {
 	return &Handler{service: service, log: log}
 }
 
@@ -80,7 +85,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 }
 `
 
-const infraTemplate = `package infra
+const repositoryTemplate = `package repository
 
 import (
 	"gorm.io/gorm"
@@ -108,24 +113,29 @@ func NewRepositoryFromDB(database *database.DB) *Repository {
 const wireTemplate = `package {{.Name}}
 
 import (
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/masmuss/gokit-starter/internal/inbound"
 	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/handler"
 )
 
+// Dependencies holds everything the {{.Name}} module needs from the outside.
+type Dependencies struct {
+	// TODO: define what this module needs (DB, cache, logger, etc.)
+}
+
 // Module exposes the {{.Name}} module's public outputs.
 type Module struct {
 	Handler   *handler.Handler
-	Registrar delivery.RouteRegistrar
+	Registrar inbound.RouteRegistrar
 }
 
 // Wire builds the {{.Name}} module from its dependencies.
-func Wire() Module {
+func Wire(deps Dependencies) Module {
 	h := handler.NewHandler(nil, nil) // TODO: inject real dependencies
 	return Module{
 		Handler: h,
-		Registrar: delivery.RouteRegistrarFunc(func(r chi.Router) {
+		Registrar: inbound.RouteRegistrarFunc(func(r chi.Router) {
 			h.RegisterRoutes(r)
 		}),
 	}
@@ -159,7 +169,7 @@ func main() {
 		filepath.Join(basePath, "domain"),
 		filepath.Join(basePath, "app"),
 		filepath.Join(basePath, "handler"),
-		filepath.Join(basePath, "infra"),
+		filepath.Join(basePath, "repository"),
 	}
 
 	for _, folder := range folders {
@@ -170,11 +180,11 @@ func main() {
 	}
 
 	files := map[string]string{
-		filepath.Join(basePath, "domain", "model.go"):     domainTemplate,
-		filepath.Join(basePath, "app", "service.go"):      appTemplate,
-		filepath.Join(basePath, "handler", "handler.go"):  handlerTemplate,
-		filepath.Join(basePath, "infra", "repository.go"): infraTemplate,
-		filepath.Join(basePath, "wire.go"):                wireTemplate,
+		filepath.Join(basePath, "domain", "model.go"):          domainTemplate,
+		filepath.Join(basePath, "app", "service.go"):           appTemplate,
+		filepath.Join(basePath, "handler", "handler.go"):       handlerTemplate,
+		filepath.Join(basePath, "repository", "repository.go"): repositoryTemplate,
+		filepath.Join(basePath, "wire.go"):                     wireTemplate,
 	}
 
 	for path, content := range files {
@@ -203,6 +213,6 @@ func main() {
 	fmt.Printf("\nModule '%s' scaffolded successfully!\n", moduleName)
 	fmt.Println("Next steps:")
 	fmt.Printf("1. Define your model in internal/database/model/%s.go\n", moduleName)
-	fmt.Println("2. Add model to AutoMigrate in internal/infra/database/database.go")
-	fmt.Printf("3. Call {{.Name}}.Wire() in cmd/server/main.go\n")
+	fmt.Println("2. Add model to AutoMigrate in internal/outbound/database/database.go")
+	fmt.Printf("3. Call %s.Wire(deps) in cmd/server/main.go (see auth module as example)\n", moduleName)
 }
