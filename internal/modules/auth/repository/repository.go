@@ -56,21 +56,27 @@ func (r *Repository) CreateAccount(
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var org model.Organization
 
-		for i := 0; i < 3; i++ {
+		var orgCreated bool
+		for range 3 {
 			org = model.Organization{
-				ID:   uuid.New(),
-				Name: orgName,
-				Code: organizationCode(orgName),
-				Type: orgType,
+				ID:     uuid.New(),
+				Name:   orgName,
+				Code:   organizationCode(orgName),
+				Type:   orgType,
+				Status: "active",
 			}
 
 			createErr := tx.Create(&org).Error
 			if createErr == nil {
+				orgCreated = true
 				break
 			}
 			if !isUniqueViolation(createErr) {
 				return fmt.Errorf("create organization: %w", createErr)
 			}
+		}
+		if !orgCreated {
+			return fmt.Errorf("create organization: code collision after 3 attempts")
 		}
 
 		userRecord := model.User{
@@ -80,6 +86,7 @@ func (r *Repository) CreateAccount(
 			Email:          strings.ToLower(input.Email),
 			PasswordHash:   passwordHash,
 			Role:           roleAdmin,
+			Status:         domain.UserStatusActive,
 		}
 
 		if err := tx.Create(&userRecord).Error; err != nil {
@@ -171,9 +178,7 @@ func organizationCode(name string) string {
 
 	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
 	maxBase := organizationCodeMaxLen - len(suffix) - 1
-	if maxBase < 1 {
-		maxBase = 1
-	}
+	maxBase = max(1, maxBase)
 	if len(base) > maxBase {
 		base = base[:maxBase]
 	}
