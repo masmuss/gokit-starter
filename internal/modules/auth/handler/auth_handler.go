@@ -60,7 +60,7 @@ func NewAuthHandler(
 type RegisterRequest struct {
 	Name             string `json:"name"              validate:"required,min=2,max=128"`
 	Email            string `json:"email"             validate:"required,email"`
-	Password         string `json:"password"          validate:"required,min=8"`
+	Password         string `json:"password"          validate:"required,min=8,max=72"`
 	OrganizationName string `json:"organization_name" validate:"omitempty,min=3"`
 }
 
@@ -198,6 +198,28 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !refreshClaims.IsRefresh() {
+		_ = response.WriteAppError(
+			w,
+			apperr.BadRequest(
+				"invalid_refresh_token",
+				"provided token is not a refresh token",
+			),
+		)
+		return
+	}
+
+	if refreshClaims.UserID != accessClaims.UserID {
+		_ = response.WriteAppError(
+			w,
+			apperr.Forbidden(
+				"token_mismatch",
+				"refresh token does not belong to current user",
+			),
+		)
+		return
+	}
+
 	if err = h.service.Logout(r.Context(), accessClaims, refreshClaims); err != nil {
 		_ = response.WriteAppError(w, err)
 		return
@@ -214,7 +236,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // ChangePasswordRequest defines the input for changing password.
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" validate:"required"`
-	NewPassword string `json:"new_password" validate:"required,min=8"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
 
 // ChangePassword handles password change for the authenticated user.

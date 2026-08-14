@@ -27,6 +27,7 @@ type Error struct {
 	Kind    Kind
 	Code    string
 	Message string
+	Meta    any
 	Err     error
 }
 
@@ -63,8 +64,8 @@ func Wrap(err error, kind Kind, code, message string) *Error {
 
 // HTTPStatus returns the HTTP status code associated with the error kind.
 func HTTPStatus(err error) int {
-	var appErr *Error
-	if !errors.As(err, &appErr) {
+	appErr, ok := errors.AsType[*Error](err)
+	if !ok {
 		return http.StatusInternalServerError
 	}
 
@@ -90,8 +91,7 @@ func HTTPStatus(err error) int {
 
 // ErrorCode returns the machine-readable error code.
 func ErrorCode(err error) string {
-	var appErr *Error
-	if errors.As(err, &appErr) {
+	if appErr, ok := errors.AsType[*Error](err); ok {
 		return appErr.Code
 	}
 	return "internal_error"
@@ -130,4 +130,14 @@ func Conflict(code, message string) *Error {
 // Validation creates a KindValidation error.
 func Validation(code, message string) *Error {
 	return New(KindValidation, code, message)
+}
+
+// WithMeta creates an error with metadata (e.g. validation field errors).
+func WithMeta(kind Kind, code, message string, meta any) *Error {
+	return &Error{
+		Kind:    kind,
+		Code:    code,
+		Message: message,
+		Meta:    meta,
+	}
 }
