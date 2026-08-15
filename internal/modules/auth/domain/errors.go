@@ -11,4 +11,6 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrAccountInactive indicates the account is not active.
 	ErrAccountInactive = errors.New("account is inactive")
+	// ErrOrgCodeCollision indicates organization code collision after max retries
+	ErrOrgCodeCollision = errors.New("organization code collision after max retries")
 )

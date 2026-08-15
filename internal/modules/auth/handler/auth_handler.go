@@ -25,7 +25,7 @@ type AuthService interface {
 	Register(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	Login(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
 	Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
-	Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error
+	Logout(ctx context.Context, accessClaims authtoken.Claims, refreshToken string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	RefreshAccessToken(ctx context.Context, token string) (domain.Session, error)
 }
@@ -66,13 +66,8 @@ type RegisterRequest struct {
 
 // Register handles user registration.
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req RegisterRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[RegisterRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -109,13 +104,8 @@ type LoginRequest struct {
 
 // Login handles user authentication.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[LoginRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -181,46 +171,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req LogoutRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	refreshClaims, err := h.tokenVerifier.Verify(req.RefreshToken)
+	req, err := validate.DecodeAndValidate[LogoutRequest](h.validator, r)
 	if err != nil {
-		_ = response.WriteAppError(w, apperr.BadRequest("invalid_refresh_token", "invalid refresh token"))
+		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if !refreshClaims.IsRefresh() {
-		_ = response.WriteAppError(
-			w,
-			apperr.BadRequest(
-				"invalid_refresh_token",
-				"provided token is not a refresh token",
-			),
-		)
-		return
-	}
-
-	if refreshClaims.UserID != accessClaims.UserID {
-		_ = response.WriteAppError(
-			w,
-			apperr.Forbidden(
-				"token_mismatch",
-				"refresh token does not belong to current user",
-			),
-		)
-		return
-	}
-
-	if err = h.service.Logout(r.Context(), accessClaims, refreshClaims); err != nil {
+	if err = h.service.Logout(r.Context(), accessClaims, req.RefreshToken); err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			err = apperr.BadRequest("invalid_refresh_token", "invalid refresh token")
+		}
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -247,24 +207,19 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ChangePasswordRequest
-	if err := validate.BindJSON(r, &req); err != nil {
+	req, err := validate.DecodeAndValidate[ChangePasswordRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if err := validate.Struct(h.validator, req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := h.service.ChangePassword(r.Context(), claims.UserID, req.OldPassword, req.NewPassword); err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
-			err = apperr.BadRequest("invalid_password", "current password is incorrect")
+	if cpErr := h.service.ChangePassword(r.Context(), claims.UserID, req.OldPassword, req.NewPassword); cpErr != nil {
+		if errors.Is(cpErr, domain.ErrInvalidCredentials) {
+			cpErr = apperr.BadRequest("invalid_password", "current password is incorrect")
 		}
 		h.audit.Warn("user.password_changed", "failed",
 			audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
-		_ = response.WriteAppError(w, err)
+		_ = response.WriteAppError(w, cpErr)
 		return
 	}
 
@@ -283,13 +238,8 @@ type RefreshTokenRequest struct {
 
 // RefreshToken handles access token refresh.
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	var req RefreshTokenRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[RefreshTokenRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}

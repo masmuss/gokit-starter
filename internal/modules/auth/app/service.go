@@ -93,7 +93,7 @@ func (s *Service) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.
 		return domain.Profile{}, err
 	}
 
-	if user.Organization.ID != orgID {
+	if !user.BelongsToOrganization(orgID) {
 		return domain.Profile{}, domain.ErrUserNotFound
 	}
 
@@ -101,14 +101,27 @@ func (s *Service) Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.
 }
 
 // Logout revokes both access and refresh tokens.
-func (s *Service) Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error {
+func (s *Service) Logout(ctx context.Context, accessClaims authtoken.Claims, refreshToken string) error {
+	refreshClaims, err := s.tokenVerifier.Verify(refreshToken)
+	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+
+	if !refreshClaims.IsRefresh() {
+		return domain.ErrInvalidCredentials
+	}
+
+	if refreshClaims.UserID != accessClaims.UserID {
+		return domain.ErrInvalidCredentials
+	}
+
 	if s.blacklist != nil {
-		if err := s.blacklist.Blacklist(ctx, accessClaims.TokenID(), accessClaims.ExpiresAt()); err != nil {
-			return fmt.Errorf("blacklist access token: %w", err)
+		if blErr := s.blacklist.Blacklist(ctx, accessClaims.TokenID(), accessClaims.ExpiresAt()); blErr != nil {
+			return fmt.Errorf("blacklist access token: %w", blErr)
 		}
 
-		if err := s.blacklist.Blacklist(ctx, refreshClaims.TokenID(), refreshClaims.ExpiresAt()); err != nil {
-			return fmt.Errorf("blacklist refresh token: %w", err)
+		if blErr := s.blacklist.Blacklist(ctx, refreshClaims.TokenID(), refreshClaims.ExpiresAt()); blErr != nil {
+			return fmt.Errorf("blacklist refresh token: %w", blErr)
 		}
 	}
 
@@ -173,12 +186,7 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 		return domain.Session{}, domain.ErrAccountInactive
 	}
 
-	accessToken, err := s.tokens.Issue(ctx, authtoken.TokenSubject{
-		UserID:         user.ID,
-		OrganizationID: user.Organization.ID,
-		Email:          user.Email,
-		Role:           user.Role,
-	})
+	accessToken, err := s.tokens.Issue(ctx, tokenSubjectFromUser(user))
 	if err != nil {
 		return domain.Session{}, fmt.Errorf("issue access token: %w", err)
 	}
@@ -187,22 +195,12 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 }
 
 func (s *Service) issueSession(ctx context.Context, user domain.User) (domain.Session, domain.Profile, error) {
-	accessToken, err := s.tokens.Issue(ctx, authtoken.TokenSubject{
-		UserID:         user.ID,
-		OrganizationID: user.Organization.ID,
-		Email:          user.Email,
-		Role:           user.Role,
-	})
+	accessToken, err := s.tokens.Issue(ctx, tokenSubjectFromUser(user))
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue access token: %w", err)
 	}
 
-	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, authtoken.TokenSubject{
-		UserID:         user.ID,
-		OrganizationID: user.Organization.ID,
-		Email:          user.Email,
-		Role:           user.Role,
-	})
+	refreshToken, err := s.refreshTokens.IssueRefresh(ctx, tokenSubjectFromUser(user))
 	if err != nil {
 		return domain.Session{}, domain.Profile{}, fmt.Errorf("issue refresh token: %w", err)
 	}
@@ -257,6 +255,15 @@ func (s *Service) profileFromUser(user domain.User) domain.Profile {
 			Type:   user.Organization.Type,
 			Status: user.Organization.Status,
 		},
+	}
+}
+
+func tokenSubjectFromUser(u domain.User) authtoken.TokenSubject {
+	return authtoken.TokenSubject{
+		UserID:         u.ID,
+		OrganizationID: u.Organization.ID,
+		Email:          u.Email,
+		Role:           u.Role,
 	}
 }
 
