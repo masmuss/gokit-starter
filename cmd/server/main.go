@@ -67,6 +67,7 @@ func main() {
 
 	router := buildRouter(cfg, []delivery.RouteRegistrar{
 		handler.NewHealthHandler(cfg.App.Name, cfg.App.Version, log),
+	}, []delivery.RouteRegistrar{
 		authMod.Registrar,
 	}, []doc.OperationRegistrar{
 		handler.NewHealthDocRegistrar(),
@@ -106,7 +107,8 @@ func openCache(cfg *config.Config, log *slog.Logger) (*redis.Client, cache.Cache
 
 func buildRouter(
 	cfg *config.Config,
-	registrars []delivery.RouteRegistrar,
+	coreRegistrars []delivery.RouteRegistrar,
+	apiRegistrars []delivery.RouteRegistrar,
 	docRegistrars []doc.OperationRegistrar,
 	log *slog.Logger,
 ) http.Handler {
@@ -146,9 +148,15 @@ func buildRouter(
 		MaxAge:         300,
 	}))
 
-	for _, registrar := range registrars {
+	for _, registrar := range coreRegistrars {
 		registrar.RegisterRoutes(r)
 	}
+
+	r.Route("/api/v1", func(r chi.Router) {
+		for _, registrar := range apiRegistrars {
+			registrar.RegisterRoutes(r)
+		}
+	})
 
 	r.Get("/docs", docHandler.ServeHTTP)
 	r.Get("/docs/*", docHandler.ServeHTTP)
