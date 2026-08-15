@@ -78,3 +78,20 @@ tasks:
     cmds:
       - rm -rf bin/
       - rm -rf tmp/
+
+  migrate:
+    desc: Run database migrations
+    cmds:
+      - go run github.com/pressly/goose/v3/cmd/goose@latest -dir internal/outbound/database/migrations postgres "host=${DB_HOST:-localhost} port=${DB_PORT:-5432} user=${DB_USERNAME:-gokit_starter} password=${DB_PASSWORD:-secret} dbname=${DB_DATABASE:-gokit_starter} sslmode=disable" up
+
+  migrate:rollback:
+    desc: Rollback the last database migration
+    cmds:
+      - go run github.com/pressly/goose/v3/cmd/goose@latest -dir internal/outbound/database/migrations postgres "host=${DB_HOST:-localhost} port=${DB_PORT:-5432} user=${DB_USERNAME:-gokit_starter} password=${DB_PASSWORD:-secret} dbname=${DB_DATABASE:-gokit_starter} sslmode=disable" down
+
+  make:migration:
+    desc: Create a new database migration file
+    cmds:
+      - go run github.com/pressly/goose/v3/cmd/goose@latest -dir internal/outbound/database/migrations create {{.name}} sql
+    vars:
+      name: '{{default "new_migration" .name}}'
