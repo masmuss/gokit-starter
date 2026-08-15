@@ -264,12 +264,14 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // RegisterRoutes registers auth routes on the given router.
 func (h *AuthHandler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMiddleware) {
-	r.Post("/register", h.Register)
-	r.Post("/login", h.Login)
-	r.Post("/refresh", h.RefreshToken)
-	r.With(authMiddleware.Require).Get("/profile", h.Profile)
-	r.With(authMiddleware.Require).Post("/logout", h.Logout)
-	r.With(authMiddleware.Require).Put("/password", h.ChangePassword)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", h.Register)
+		r.Post("/login", h.Login)
+		r.Post("/refresh", h.RefreshToken)
+		r.With(authMiddleware.Require).Get("/profile", h.Profile)
+		r.With(authMiddleware.Require).Post("/logout", h.Logout)
+		r.With(authMiddleware.Require).Put("/password", h.ChangePassword)
+	})
 }
 
 func sessionResponse(session domain.Session, profile domain.Profile) map[string]any {
