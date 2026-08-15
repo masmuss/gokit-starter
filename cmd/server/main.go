@@ -134,8 +134,12 @@ func buildRouter(
 	r.Use(secureMiddleware.Handler)
 	r.Use(middleware.Timeout(30 * time.Second))
 	r.Use(httprate.LimitByIP(100, 1*time.Minute))
+	corsOrigins := []string{"*"}
+	if cfg.App.Env != "local" {
+		corsOrigins = []string{cfg.App.URL}
+	}
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: corsOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders: []string{"Link"},
@@ -164,7 +168,7 @@ func runServer(ctx context.Context, cfg serverConfig, log *slog.Logger) {
 		Handler:           cfg.Router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		WriteTimeout:      35 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 

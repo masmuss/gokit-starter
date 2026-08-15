@@ -106,6 +106,14 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	// Guard against insecure JWT secret in non-local environments.
+	if cfg.App.Env != "local" && cfg.Auth.JWTSecret == "change-me-at-least-32-chars-long-!!!" {
+		return nil, fmt.Errorf(
+			"config validation failed: AUTH_JWT_SECRET must be changed from default in %s environment",
+			cfg.App.Env,
+		)
+	}
+
 	return &cfg, nil
 }
 

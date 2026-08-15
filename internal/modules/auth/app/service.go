@@ -164,11 +164,20 @@ func (s *Service) RefreshAccessToken(ctx context.Context, token string) (domain.
 		}
 	}
 
+	// Verify user is still active in database.
+	user, err := s.repository.FindByID(ctx, claims.UserID)
+	if err != nil {
+		return domain.Session{}, fmt.Errorf("%w: %w", domain.ErrInvalidCredentials, err)
+	}
+	if user.Status != domain.UserStatusActive {
+		return domain.Session{}, domain.ErrAccountInactive
+	}
+
 	accessToken, err := s.tokens.Issue(ctx, authtoken.TokenSubject{
-		UserID:         claims.UserID,
-		OrganizationID: claims.OrganizationID,
-		Email:          claims.Email,
-		Role:           claims.Role,
+		UserID:         user.ID,
+		OrganizationID: user.Organization.ID,
+		Email:          user.Email,
+		Role:           user.Role,
 	})
 	if err != nil {
 		return domain.Session{}, fmt.Errorf("issue access token: %w", err)
