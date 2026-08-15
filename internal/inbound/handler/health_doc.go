@@ -42,6 +42,15 @@ func (h *HealthDocRegistrar) RegisterOperations(r *openapi31.Reflector) error {
 				{Status: http.StatusOK, StructType: response.Envelope{}},
 			},
 		},
+		{
+			method: http.MethodGet, path: "/readyz",
+			summary: "Readiness check", description: "Checks all dependencies and reports service readiness.",
+			tags: []string{"health"},
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusServiceUnavailable, StructType: response.Envelope{}},
+			},
+		},
 	}
 
 	for _, op := range ops {

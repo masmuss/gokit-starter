@@ -4,6 +4,7 @@ package eventbus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -59,6 +60,13 @@ func (b *InternalBus) Publish(ctx context.Context, e Event) error {
 		wg.Add(1)
 		go func(handler Handler) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					mu.Lock()
+					errs = append(errs, fmt.Errorf("event handler panicked: %v", r))
+					mu.Unlock()
+				}
+			}()
 			if err := handler(ctx, e); err != nil {
 				mu.Lock()
 				errs = append(errs, err)

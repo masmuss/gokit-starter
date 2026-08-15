@@ -59,22 +59,20 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-
-	"github.com/masmuss/gokit-starter/internal/inbound/response"
 )
 
-// AuthService defines the interface for {{.Name}} operations.
-type AuthService interface {
+// {{.TitleName}}Service defines the interface for {{.Name}} operations.
+type {{.TitleName}}Service interface {
 }
 
 // Handler handles {{.Name}} requests.
 type Handler struct {
-	service AuthService
+	service {{.TitleName}}Service
 	log     *slog.Logger
 }
 
 // NewHandler creates a new {{.Name}} handler.
-func NewHandler(service AuthService, log *slog.Logger) *Handler {
+func NewHandler(service {{.TitleName}}Service, log *slog.Logger) *Handler {
 	return &Handler{service: service, log: log}
 }
 
@@ -88,10 +86,13 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 const repositoryTemplate = `package repository
 
 import (
+	"context"
+	"fmt"
+
 	"gorm.io/gorm"
 
+	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/domain"
 	"github.com/masmuss/gokit-starter/internal/outbound/database"
-	"github.com/masmuss/gokit-starter/internal/modules/{{.Name}}/app"
 )
 
 // Repository implements app.Repository using GORM.
@@ -107,6 +108,12 @@ func NewRepository(db *gorm.DB) *Repository {
 // NewRepositoryFromDB creates a Repository from database.DB.
 func NewRepositoryFromDB(database *database.DB) *Repository {
 	return NewRepository(database.DB)
+}
+
+// FindByID retrieves a {{.TitleName}} by its ID.
+func (r *Repository) FindByID(ctx context.Context, id any) (domain.{{.TitleName}}, error) {
+	// TODO: implement
+	return domain.{{.TitleName}}{}, fmt.Errorf("not implemented")
 }
 `
 
