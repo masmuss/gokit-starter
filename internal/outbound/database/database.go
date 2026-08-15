@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/masmuss/gokit-starter/internal/config"
-	"github.com/masmuss/gokit-starter/internal/database/model"
 )
 
 // DB wraps gorm.DB for database operations.
@@ -30,11 +29,16 @@ func New(_ context.Context, cfg *config.Config) (*DB, error) {
 
 	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database at %s:%d: %w", cfg.Database.Host, cfg.Database.Port, err)
+		return nil, fmt.Errorf(
+			"failed to connect to database at %s:%d: %w",
+			cfg.Database.Host,
+			cfg.Database.Port,
+			err,
+		)
 	}
 
-	if err = gormDB.AutoMigrate(&model.User{}, &model.Organization{}); err != nil {
-		return nil, fmt.Errorf("auto-migrate failed: %w", err)
+	if err = Migrate(gormDB); err != nil {
+		return nil, fmt.Errorf("database migration failed: %w", err)
 	}
 
 	return &DB{DB: gormDB}, nil
