@@ -214,3 +214,137 @@ func TestService_Register_Login_Profile(t *testing.T) {
 		require.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	})
 }
+
+func TestService_Logout(t *testing.T) {
+	ctx := context.Background()
+
+	newMocks := func() *mocks.TokenVerifierMock {
+		return mocks.NewTokenVerifierMock(t)
+	}
+
+	newService := func(verifier *mocks.TokenVerifierMock) *Service {
+		return New(Config{
+			TokenVerifier: verifier,
+		})
+	}
+
+	accessClaims := authtoken.Claims{
+		UserID: uuid.New(),
+	}
+
+	t.Run("success", func(t *testing.T) {
+		verifier := newMocks()
+		refreshClaims := authtoken.Claims{
+			UserID:    accessClaims.UserID,
+			TokenType: "refresh",
+		}
+		verifier.EXPECT().Verify("valid-refresh").Return(refreshClaims, nil)
+
+		svc := newService(verifier)
+		err := svc.Logout(ctx, accessClaims, "valid-refresh")
+		require.NoError(t, err)
+	})
+
+	t.Run("invalid refresh token", func(t *testing.T) {
+		verifier := newMocks()
+		verifier.EXPECT().Verify("bad-token").Return(authtoken.Claims{}, errors.New("invalid"))
+
+		svc := newService(verifier)
+		err := svc.Logout(ctx, accessClaims, "bad-token")
+		require.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+
+	t.Run("access token used as refresh", func(t *testing.T) {
+		verifier := newMocks()
+		refreshClaims := authtoken.Claims{
+			UserID:    accessClaims.UserID,
+			TokenType: "access",
+		}
+		verifier.EXPECT().Verify("access-token").Return(refreshClaims, nil)
+
+		svc := newService(verifier)
+		err := svc.Logout(ctx, accessClaims, "access-token")
+		require.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+
+	t.Run("token ownership mismatch", func(t *testing.T) {
+		verifier := newMocks()
+		refreshClaims := authtoken.Claims{
+			UserID:    uuid.New(),
+			TokenType: "refresh",
+		}
+		verifier.EXPECT().Verify("other-user-refresh").Return(refreshClaims, nil)
+
+		svc := newService(verifier)
+		err := svc.Logout(ctx, accessClaims, "other-user-refresh")
+		require.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+}
+
+func TestService_RefreshAccessToken(t *testing.T) {
+	ctx := context.Background()
+
+	newMocks := func() (
+		*mocks.RepositoryMock,
+		*mocks.TokenIssuerMock,
+		*mocks.TokenVerifierMock,
+	) {
+		return mocks.NewRepositoryMock(t),
+			mocks.NewTokenIssuerMock(t),
+			mocks.NewTokenVerifierMock(t)
+	}
+
+	newService := func(
+		repo *mocks.RepositoryMock,
+		tokens *mocks.TokenIssuerMock,
+		verifier *mocks.TokenVerifierMock,
+	) *Service {
+		return New(Config{
+			Repository:    repo,
+			Tokens:        tokens,
+			TokenVerifier: verifier,
+			ExpiresIn:     3600,
+		})
+	}
+
+	userID := uuid.New()
+	sampleUser := domain.User{
+		ID:     userID,
+		Status: domain.UserStatusActive,
+	}
+
+	t.Run("success", func(t *testing.T) {
+		repo, tokens, verifier := newMocks()
+
+		claims := authtoken.Claims{
+			UserID:    userID,
+			TokenType: "refresh",
+		}
+		verifier.EXPECT().Verify("valid-token").Return(claims, nil)
+		repo.EXPECT().FindByID(mock.Anything, userID).Return(sampleUser, nil)
+		tokens.EXPECT().Issue(mock.Anything, mock.Anything).Return("new-access-token", nil)
+
+		svc := newService(repo, tokens, verifier)
+		sess, err := svc.RefreshAccessToken(ctx, "valid-token")
+		require.NoError(t, err)
+		require.Equal(t, "new-access-token", sess.AccessToken)
+	})
+
+	t.Run("user inactive", func(t *testing.T) {
+		repo, tokens, verifier := newMocks()
+
+		claims := authtoken.Claims{
+			UserID:    userID,
+			TokenType: "refresh",
+		}
+		verifier.EXPECT().Verify("valid-token").Return(claims, nil)
+
+		inactiveUser := sampleUser
+		inactiveUser.Status = "suspended"
+		repo.EXPECT().FindByID(mock.Anything, userID).Return(inactiveUser, nil)
+
+		svc := newService(repo, tokens, verifier)
+		_, err := svc.RefreshAccessToken(ctx, "valid-token")
+		require.ErrorIs(t, err, domain.ErrAccountInactive)
+	})
+}
