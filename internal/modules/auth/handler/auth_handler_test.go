@@ -21,7 +21,7 @@ type mockAuthService struct {
 	registerFn       func(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	loginFn          func(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
 	profileFn        func(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
-	logoutFn         func(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error
+	logoutFn         func(ctx context.Context, accessClaims authtoken.Claims, refreshToken string) error
 	changePasswordFn func(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	refreshTokenFn   func(ctx context.Context, token string) (domain.Session, error)
 }
@@ -44,8 +44,8 @@ func (m *mockAuthService) Profile(ctx context.Context, userID, orgID uuid.UUID) 
 	return m.profileFn(ctx, userID, orgID)
 }
 
-func (m *mockAuthService) Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error {
-	return m.logoutFn(ctx, accessClaims, refreshClaims)
+func (m *mockAuthService) Logout(ctx context.Context, accessClaims authtoken.Claims, refreshToken string) error {
+	return m.logoutFn(ctx, accessClaims, refreshToken)
 }
 
 func (m *mockAuthService) ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error {

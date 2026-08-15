@@ -61,7 +61,7 @@ func (r *Repository) CreateAccount(
 			org = model.Organization{
 				ID:     uuid.New(),
 				Name:   orgName,
-				Code:   organizationCode(orgName),
+				Code:   generateOrganizationCode(orgName),
 				Type:   orgType,
 				Status: "active",
 			}
@@ -76,14 +76,14 @@ func (r *Repository) CreateAccount(
 			}
 		}
 		if !orgCreated {
-			return fmt.Errorf("create organization: code collision after 3 attempts")
+			return domain.ErrOrgCodeCollision
 		}
 
 		userRecord := model.User{
 			ID:             uuid.New(),
 			OrganizationID: org.ID,
 			Name:           input.Name,
-			Email:          strings.ToLower(input.Email),
+			Email:          input.Email,
 			PasswordHash:   passwordHash,
 			Role:           roleAdmin,
 			Status:         domain.UserStatusActive,
@@ -109,7 +109,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User
 	var record model.User
 	err := r.db.WithContext(ctx).
 		Preload("Organization").
-		Where("email = ?", strings.ToLower(strings.TrimSpace(email))).
+		Where("email = ?", email).
 		First(&record).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -170,7 +170,7 @@ func toDomainUser(record *model.User) domain.User {
 	}
 }
 
-func organizationCode(name string) string {
+func generateOrganizationCode(name string) string {
 	base := normalizeCode(name)
 	if base == "" {
 		base = "org"

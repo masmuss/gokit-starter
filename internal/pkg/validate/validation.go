@@ -82,8 +82,20 @@ func Struct(v *validator.Validate, value any) error {
 	return nil
 }
 
+// DecodeAndValidate decodes the JSON request body into T and validates the struct.
+func DecodeAndValidate[T any](v *validator.Validate, r *http.Request) (T, error) {
+	var dst T
+	if err := BindJSON(r, &dst); err != nil {
+		return dst, err
+	}
+	if err := Struct(v, dst); err != nil {
+		return dst, err
+	}
+	return dst, nil
+}
+
 func jsonTagName(field reflect.StructField) string {
-	name := strings.Split(field.Tag.Get("json"), ",")[0]
+	name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 	if name == "-" {
 		return ""
 	}

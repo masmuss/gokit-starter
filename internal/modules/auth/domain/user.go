@@ -23,3 +23,8 @@ type User struct {
 	Role         string       `json:"role"`
 	Organization Organization `json:"organization"`
 }
+
+// BelongsToOrganization checks if the user is a member of the given organization.
+func (u User) BelongsToOrganization(orgID uuid.UUID) bool {
+	return u.Organization.ID == orgID
+}
