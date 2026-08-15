@@ -72,9 +72,9 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_NAME: gokit_starter
-          DB_USER: gokit_starter
-          DB_PASS: secret
+          DB_DATABASE: gokit_starter
+          DB_USERNAME: gokit_starter
+          DB_PASSWORD: secret
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           AUTH_JWT_SECRET: ci-secret-key-at-least-32-chars-long-!!!
@@ -117,6 +117,7 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_NAME: gokit_starter
-          DB_USER: gokit_starter
-          DB_PASS: secret
+          DB_DATABASE: gokit_starter
+          DB_USERNAME: gokit_starter
+          DB_PASSWORD: secret
+          AUTH_JWT_SECRET: ci-secret-key-at-least-32-chars-long-!!!

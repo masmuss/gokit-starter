@@ -109,7 +109,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User
 	var record model.User
 	err := r.db.WithContext(ctx).
 		Preload("Organization").
-		Where("LOWER(email) = ?", strings.ToLower(strings.TrimSpace(email))).
+		Where("email = ?", strings.ToLower(strings.TrimSpace(email))).
 		First(&record).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

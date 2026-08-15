@@ -54,6 +54,35 @@ func (a *AuthDocRegistrar) RegisterOperations(r *openapi31.Reflector) error {
 				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
 			},
 		},
+		{
+			method: http.MethodPost, path: "/auth/logout",
+			summary: "Logout", description: "Revoke access and refresh tokens",
+			tags: []string{"auth"}, req: LogoutRequest{}, secured: true,
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+				{Status: http.StatusBadRequest, StructType: response.ErrorEnvelope{}},
+			},
+		},
+		{
+			method: http.MethodPut, path: "/auth/password",
+			summary: "Change password", description: "Update password for the authenticated user",
+			tags: []string{"auth"}, req: ChangePasswordRequest{}, secured: true,
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusBadRequest, StructType: response.ErrorEnvelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+			},
+		},
+		{
+			method: http.MethodPost, path: "/auth/refresh",
+			summary: "Refresh access token", description: "Issue a new access token using a valid refresh token",
+			tags: []string{"auth"}, req: RefreshTokenRequest{},
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+			},
+		},
 	}
 
 	for _, op := range ops {
