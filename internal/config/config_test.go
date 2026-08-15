@@ -50,6 +50,18 @@ func TestLoadConfig_Validation(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "refresh TTL less than access TTL",
+			env: map[string]string{
+				"APP_ENV":              "production",
+				"APP_URL":              "https://example.com",
+				"AUTH_JWT_SECRET":      "this-is-a-very-long-secret-key-32-chars",
+				"AUTH_JWT_TTL":         "120",
+				"AUTH_JWT_REFRESH_TTL": "60",
+			},
+			wantErr: true,
+			errMsg:  "must be greater than",
+		},
 	}
 
 	for _, tt := range tests {

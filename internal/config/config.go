@@ -101,20 +101,38 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Validate configuration
-	validate := validator.New()
-	if err := validate.Struct(&cfg); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
+	return &cfg, nil
+}
+
+// Validate checks if the configuration is valid and applies complex cross-field rules.
+func (c *Config) Validate() error {
+	v := validator.New()
+	if err := v.Struct(c); err != nil {
+		return err
+	}
+
 	// Guard against insecure JWT secret in non-local environments.
-	if cfg.App.Env != "local" && cfg.Auth.JWTSecret == "change-me-at-least-32-chars-long-!!!" {
-		return nil, fmt.Errorf(
-			"config validation failed: AUTH_JWT_SECRET must be changed from default in %s environment",
-			cfg.App.Env,
+	if c.App.Env != "local" && c.Auth.JWTSecret == "change-me-at-least-32-chars-long-!!!" {
+		return fmt.Errorf(
+			"AUTH_JWT_SECRET must be changed from default in %s environment",
+			c.App.Env,
 		)
 	}
 
-	return &cfg, nil
+	// Ensure refresh TTL is strictly greater than access TTL
+	if c.Auth.JWTRefreshTTL <= c.Auth.JWTTTL {
+		return fmt.Errorf(
+			"AUTH_JWT_REFRESH_TTL (%d) must be greater than AUTH_JWT_TTL (%d)",
+			c.Auth.JWTRefreshTTL,
+			c.Auth.JWTTTL,
+		)
+	}
+
+	return nil
 }
 
 func setDefaults(v *viper.Viper) {
