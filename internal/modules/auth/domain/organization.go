@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/google/uuid"
+import "uuid"
 
 // Organization represents a user's organization.
 type Organization struct {

@@ -7,7 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +38,7 @@ func TestInternalBus_SubscribeAndPublish(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, event.Name, got.Name)
 	require.Equal(t, event.Payload, got.Payload)
-	require.NotEqual(t, uuid.Nil, got.ID)
+	require.NotEqual(t, uuid.Nil(), got.ID)
 }
 
 func TestInternalBus_MultipleSubscribers(t *testing.T) {
@@ -122,11 +123,9 @@ func TestInternalBus_ConcurrentSafe(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = bus.Publish(ctx, NewEvent("test.event", nil))
-		}()
+		})
 	}
 	wg.Wait()
 

@@ -27,7 +27,7 @@ func (a *AuthDocRegistrar) RegisterOperations(r *openapi31.Reflector) error {
 		secured                            bool
 	}{
 		{
-			method: http.MethodPost, path: "/auth/register",
+			method: http.MethodPost, path: "/api/v1/auth/register",
 			summary: "Register a new user", description: "Register a new user and create an organization",
 			tags: []string{"auth"}, req: RegisterRequest{},
 			resps: []doc.RespSpec{
@@ -37,7 +37,7 @@ func (a *AuthDocRegistrar) RegisterOperations(r *openapi31.Reflector) error {
 			},
 		},
 		{
-			method: http.MethodPost, path: "/auth/login",
+			method: http.MethodPost, path: "/api/v1/auth/login",
 			summary: "User login", description: "Authenticate user and return JWT token",
 			tags: []string{"auth"}, req: LoginRequest{},
 			resps: []doc.RespSpec{
@@ -46,9 +46,38 @@ func (a *AuthDocRegistrar) RegisterOperations(r *openapi31.Reflector) error {
 			},
 		},
 		{
-			method: http.MethodGet, path: "/auth/profile",
+			method: http.MethodGet, path: "/api/v1/auth/profile",
 			summary: "Get current user profile", description: "Retrieve profile details for the authenticated user",
 			tags: []string{"auth"}, secured: true,
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+			},
+		},
+		{
+			method: http.MethodPost, path: "/api/v1/auth/logout",
+			summary: "Logout", description: "Revoke access and refresh tokens",
+			tags: []string{"auth"}, req: LogoutRequest{}, secured: true,
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+				{Status: http.StatusBadRequest, StructType: response.ErrorEnvelope{}},
+			},
+		},
+		{
+			method: http.MethodPut, path: "/api/v1/auth/password",
+			summary: "Change password", description: "Update password for the authenticated user",
+			tags: []string{"auth"}, req: ChangePasswordRequest{}, secured: true,
+			resps: []doc.RespSpec{
+				{Status: http.StatusOK, StructType: response.Envelope{}},
+				{Status: http.StatusBadRequest, StructType: response.ErrorEnvelope{}},
+				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},
+			},
+		},
+		{
+			method: http.MethodPost, path: "/api/v1/auth/refresh",
+			summary: "Refresh access token", description: "Issue a new access token using a valid refresh token",
+			tags: []string{"auth"}, req: RefreshTokenRequest{},
 			resps: []doc.RespSpec{
 				{Status: http.StatusOK, StructType: response.Envelope{}},
 				{Status: http.StatusUnauthorized, StructType: response.ErrorEnvelope{}},

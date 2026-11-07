@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/google/uuid"
+import "uuid"
 
 // User account status constants.
 const (
@@ -22,4 +22,9 @@ type User struct {
 	Status       string       `json:"status"`
 	Role         string       `json:"role"`
 	Organization Organization `json:"organization"`
+}
+
+// BelongsToOrganization checks if the user is a member of the given organization.
+func (u User) BelongsToOrganization(orgID uuid.UUID) bool {
+	return u.Organization.ID == orgID
 }

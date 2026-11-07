@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 
+	"uuid"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 
 	"github.com/masmuss/gokit-starter/internal/inbound/middleware"
 	"github.com/masmuss/gokit-starter/internal/inbound/response"
@@ -25,7 +26,7 @@ type AuthService interface {
 	Register(ctx context.Context, input domain.RegisterInput) (domain.Session, domain.Profile, error)
 	Login(ctx context.Context, credentials domain.Credentials) (domain.Session, domain.Profile, error)
 	Profile(ctx context.Context, userID, orgID uuid.UUID) (domain.Profile, error)
-	Logout(ctx context.Context, accessClaims, refreshClaims authtoken.Claims) error
+	Logout(ctx context.Context, accessClaims authtoken.Claims, refreshToken string) error
 	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword, newPassword string) error
 	RefreshAccessToken(ctx context.Context, token string) (domain.Session, error)
 }
@@ -60,19 +61,14 @@ func NewAuthHandler(
 type RegisterRequest struct {
 	Name             string `json:"name"              validate:"required,min=2,max=128"`
 	Email            string `json:"email"             validate:"required,email"`
-	Password         string `json:"password"          validate:"required,min=8"`
+	Password         string `json:"password"          validate:"required,min=8,max=72"`
 	OrganizationName string `json:"organization_name" validate:"omitempty,min=3"`
 }
 
 // Register handles user registration.
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req RegisterRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[RegisterRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -109,13 +105,8 @@ type LoginRequest struct {
 
 // Login handles user authentication.
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[LoginRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -181,24 +172,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req LogoutRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	refreshClaims, err := h.tokenVerifier.Verify(req.RefreshToken)
+	req, err := validate.DecodeAndValidate[LogoutRequest](h.validator, r)
 	if err != nil {
-		_ = response.WriteAppError(w, apperr.BadRequest("invalid_refresh_token", "invalid refresh token"))
+		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if err = h.service.Logout(r.Context(), accessClaims, refreshClaims); err != nil {
+	if err = h.service.Logout(r.Context(), accessClaims, req.RefreshToken); err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			err = apperr.BadRequest("invalid_refresh_token", "invalid refresh token")
+		}
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -214,7 +197,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // ChangePasswordRequest defines the input for changing password.
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" validate:"required"`
-	NewPassword string `json:"new_password" validate:"required,min=8"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
 
 // ChangePassword handles password change for the authenticated user.
@@ -225,24 +208,19 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ChangePasswordRequest
-	if err := validate.BindJSON(r, &req); err != nil {
+	req, err := validate.DecodeAndValidate[ChangePasswordRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
 
-	if err := validate.Struct(h.validator, req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := h.service.ChangePassword(r.Context(), claims.UserID, req.OldPassword, req.NewPassword); err != nil {
-		if errors.Is(err, domain.ErrInvalidCredentials) {
-			err = apperr.BadRequest("invalid_password", "current password is incorrect")
+	if cpErr := h.service.ChangePassword(r.Context(), claims.UserID, req.OldPassword, req.NewPassword); cpErr != nil {
+		if errors.Is(cpErr, domain.ErrInvalidCredentials) {
+			cpErr = apperr.BadRequest("invalid_password", "current password is incorrect")
 		}
 		h.audit.Warn("user.password_changed", "failed",
 			audit.UserID(claims.UserID), audit.OrgID(claims.OrganizationID), audit.IP(r))
-		_ = response.WriteAppError(w, err)
+		_ = response.WriteAppError(w, cpErr)
 		return
 	}
 
@@ -261,13 +239,8 @@ type RefreshTokenRequest struct {
 
 // RefreshToken handles access token refresh.
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	var req RefreshTokenRequest
-	if err := validate.BindJSON(r, &req); err != nil {
-		_ = response.WriteAppError(w, err)
-		return
-	}
-
-	if err := validate.Struct(h.validator, req); err != nil {
+	req, err := validate.DecodeAndValidate[RefreshTokenRequest](h.validator, r)
+	if err != nil {
 		_ = response.WriteAppError(w, err)
 		return
 	}
@@ -292,12 +265,14 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 // RegisterRoutes registers auth routes on the given router.
 func (h *AuthHandler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMiddleware) {
-	r.Post("/register", h.Register)
-	r.Post("/login", h.Login)
-	r.Post("/refresh", h.RefreshToken)
-	r.With(authMiddleware.Require).Get("/profile", h.Profile)
-	r.With(authMiddleware.Require).Post("/logout", h.Logout)
-	r.With(authMiddleware.Require).Put("/password", h.ChangePassword)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", h.Register)
+		r.Post("/login", h.Login)
+		r.Post("/refresh", h.RefreshToken)
+		r.With(authMiddleware.Require).Get("/profile", h.Profile)
+		r.With(authMiddleware.Require).Post("/logout", h.Logout)
+		r.With(authMiddleware.Require).Put("/password", h.ChangePassword)
+	})
 }
 
 func sessionResponse(session domain.Session, profile domain.Profile) map[string]any {
@@ -307,7 +282,7 @@ func sessionResponse(session domain.Session, profile domain.Profile) map[string]
 		"token_type":    session.TokenType,
 		"expires_in":    session.ExpiresIn,
 	}
-	if profile.ID != uuid.Nil {
+	if profile.ID != uuid.Nil() {
 		data["user"] = profile
 	}
 	return data

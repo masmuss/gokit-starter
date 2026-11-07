@@ -8,7 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	"gorm.io/gorm"
 
 	"github.com/masmuss/gokit-starter/internal/database/model"
@@ -56,30 +57,37 @@ func (r *Repository) CreateAccount(
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var org model.Organization
 
-		for i := 0; i < 3; i++ {
+		var orgCreated bool
+		for range 3 {
 			org = model.Organization{
-				ID:   uuid.New(),
-				Name: orgName,
-				Code: organizationCode(orgName),
-				Type: orgType,
+				ID:     uuid.New(),
+				Name:   orgName,
+				Code:   generateOrganizationCode(orgName),
+				Type:   orgType,
+				Status: "active",
 			}
 
 			createErr := tx.Create(&org).Error
 			if createErr == nil {
+				orgCreated = true
 				break
 			}
 			if !isUniqueViolation(createErr) {
 				return fmt.Errorf("create organization: %w", createErr)
 			}
 		}
+		if !orgCreated {
+			return domain.ErrOrgCodeCollision
+		}
 
 		userRecord := model.User{
 			ID:             uuid.New(),
 			OrganizationID: org.ID,
 			Name:           input.Name,
-			Email:          strings.ToLower(input.Email),
+			Email:          input.Email,
 			PasswordHash:   passwordHash,
 			Role:           roleAdmin,
+			Status:         domain.UserStatusActive,
 		}
 
 		if err := tx.Create(&userRecord).Error; err != nil {
@@ -102,7 +110,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (domain.User
 	var record model.User
 	err := r.db.WithContext(ctx).
 		Preload("Organization").
-		Where("LOWER(email) = ?", strings.ToLower(strings.TrimSpace(email))).
+		Where("email = ?", email).
 		First(&record).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -163,17 +171,15 @@ func toDomainUser(record *model.User) domain.User {
 	}
 }
 
-func organizationCode(name string) string {
+func generateOrganizationCode(name string) string {
 	base := normalizeCode(name)
 	if base == "" {
 		base = "org"
 	}
 
-	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
+	suffix := strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 	maxBase := organizationCodeMaxLen - len(suffix) - 1
-	if maxBase < 1 {
-		maxBase = 1
-	}
+	maxBase = max(1, maxBase)
 	if len(base) > maxBase {
 		base = base[:maxBase]
 	}

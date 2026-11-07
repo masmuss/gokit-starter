@@ -4,6 +4,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/masmuss/gokit-starter/internal/config"
 )
+
+// ErrNotFound is returned when a requested key is not found in the cache.
+var ErrNotFound = errors.New("cache: key not found")
 
 // Cache defines the interface for caching operations.
 type Cache interface {
@@ -45,7 +49,7 @@ func tryConnectRedis(cfg *config.Config) (*redis.Client, error) {
 
 	var err error
 	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
+	for range maxRetries {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		err = client.Ping(ctx).Err()
 		cancel()
@@ -71,9 +75,9 @@ func NewRedisCache(client *redis.Client, cfg *config.Config) *RedisCache {
 // NullCache is a no-op cache implementation for when Redis is unavailable.
 type NullCache struct{}
 
-// Get always returns nil (cache miss).
+// Get always returns ErrNotFound (cache miss).
 func (n *NullCache) Get(_ context.Context, _ string, _ any) error {
-	return nil
+	return ErrNotFound
 }
 
 // Set is a no-op.
@@ -103,6 +107,9 @@ func (c *RedisCache) Get(ctx context.Context, key string, dest any) error {
 	}
 	val, err := c.client.Get(ctx, fullKey).Bytes()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return ErrNotFound
+		}
 		return err
 	}
 

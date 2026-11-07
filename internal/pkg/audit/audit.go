@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 // Logger writes structured audit events.
