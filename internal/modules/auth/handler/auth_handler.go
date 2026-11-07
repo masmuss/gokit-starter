@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 
+	"uuid"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 
 	"github.com/masmuss/gokit-starter/internal/inbound/middleware"
 	"github.com/masmuss/gokit-starter/internal/inbound/response"
@@ -281,7 +282,7 @@ func sessionResponse(session domain.Session, profile domain.Profile) map[string]
 		"token_type":    session.TokenType,
 		"expires_in":    session.ExpiresIn,
 	}
-	if profile.ID != uuid.Nil {
+	if profile.ID != uuid.Nil() {
 		data["user"] = profile
 	}
 	return data

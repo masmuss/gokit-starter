@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 // Event represents a domain event.

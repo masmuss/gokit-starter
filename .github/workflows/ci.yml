@@ -3,15 +3,42 @@ name: CI
 on:
   push:
     branches: [main, dev]
+    paths:
+      - "**/*.go"
+      - "**/*.yaml"
+      - "**/*.yml"
+      - "go.mod"
+      - "go.sum"
+      - "Taskfile.yml"
+      - "lefthook.yml"
   pull_request:
     branches: [main, dev]
+    paths:
+      - "**/*.go"
+      - "**/*.yaml"
+      - "**/*.yml"
+      - "go.mod"
+      - "go.sum"
+      - "Taskfile.yml"
+      - "lefthook.yml"
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -22,38 +49,15 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.12
-          install-mode: goinstall
+          version: v2.15.0
+          install-mode: binary
 
   test:
     name: Test
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: gokit_starter
-          POSTGRES_USER: gokit_starter
-          POSTGRES_PASSWORD: secret
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -61,44 +65,18 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Tests
-        run: task test
+      - name: Run tests with coverage
+        run: go test -race -tags=integration -coverprofile=coverage.out ./...
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: gokit_starter
-          DB_USERNAME: gokit_starter
-          DB_PASSWORD: secret
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
           AUTH_JWT_SECRET: ci-secret-key-at-least-32-chars-long-!!!
 
-  integration:
-    name: Integration Test
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_DB: gokit_starter
-          POSTGRES_USER: gokit_starter
-          POSTGRES_PASSWORD: secret
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+  govulncheck:
+    name: Govulncheck
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -106,18 +84,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Integration Tests
-        run: task test-integration
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_DATABASE: gokit_starter
-          DB_USERNAME: gokit_starter
-          DB_PASSWORD: secret
-          AUTH_JWT_SECRET: ci-secret-key-at-least-32-chars-long-!!!
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...

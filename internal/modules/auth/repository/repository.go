@@ -8,7 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	"gorm.io/gorm"
 
 	"github.com/masmuss/gokit-starter/internal/database/model"
@@ -176,7 +177,7 @@ func generateOrganizationCode(name string) string {
 		base = "org"
 	}
 
-	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
+	suffix := strings.ReplaceAll(uuid.New().String(), "-", "")[:8]
 	maxBase := organizationCodeMaxLen - len(suffix) - 1
 	maxBase = max(1, maxBase)
 	if len(base) > maxBase {

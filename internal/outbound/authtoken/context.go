@@ -3,7 +3,7 @@ package authtoken
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 type claimsKey struct{}

@@ -3,8 +3,7 @@ package model
 
 import (
 	"time"
-
-	"github.com/google/uuid"
+	"uuid"
 )
 
 // User represents a user in the database.
