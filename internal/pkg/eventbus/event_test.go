@@ -124,7 +124,6 @@ func TestInternalBus_ConcurrentSafe(t *testing.T) {
 	var wg sync.WaitGroup
 	for range 10 {
 		wg.Go(func() {
-			defer wg.Done()
 			_ = bus.Publish(ctx, NewEvent("test.event", nil))
 		})
 	}
