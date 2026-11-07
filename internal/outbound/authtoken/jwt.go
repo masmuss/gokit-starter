@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"uuid"
+
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 
 	"github.com/masmuss/gokit-starter/internal/config"
 )
@@ -144,7 +145,7 @@ func (m *JWTManager) issue(
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    m.issuer,
 			Subject:   subj.UserID.String(),
-			ID:        uuid.NewString(),
+			ID:        uuid.New().String(),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 		},

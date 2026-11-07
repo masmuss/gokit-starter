@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
+	"uuid"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/masmuss/gokit-starter/internal/modules/auth/domain"
 	authtoken "github.com/masmuss/gokit-starter/internal/outbound/authtoken"
